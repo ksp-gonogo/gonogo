@@ -24,7 +24,7 @@ function TotalFigure({
       <ReadoutCaption
         style={{
           color: "var(--color-text-faint)",
-          letterSpacing: "0.1em",
+          letterSpacing: "calc(0.1em * var(--tracking-scale))",
         }}
       >
         {label}
@@ -36,7 +36,7 @@ function TotalFigure({
           alignItems: "baseline",
           gap: "var(--gap-related)",
           flexWrap: "wrap",
-          fontWeight: 700,
+          fontWeight: "var(--font-weight-bold)",
           color: "var(--color-text-primary)",
         }}
       >
@@ -47,7 +47,7 @@ function TotalFigure({
 }
 
 const COMPACT_VALUE = {
-  fontWeight: 700,
+  fontWeight: "var(--font-weight-bold)",
   color: "var(--color-text-primary)",
   whiteSpace: "nowrap",
 } as const;
@@ -118,7 +118,7 @@ export function TotalsSection({
           style={{
             color: "var(--color-text-dim)",
             fontSize: "var(--font-size-caption)",
-            letterSpacing: "0.08em",
+            letterSpacing: "calc(0.08em * var(--tracking-scale))",
           }}
         >
           {DELTA_V_MODE_SHORT[mode]}

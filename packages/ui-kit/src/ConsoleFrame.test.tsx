@@ -210,8 +210,12 @@ describe("ConsoleFrame", () => {
       const rule = ruleFor(
         container.querySelector("[data-console-frame]") as HTMLElement,
       );
-      expect(rule).toContain("border:1px solid var(--color-border-subtle)");
-      expect(rule).not.toContain("border:1px solid var(--console-tone-fg)");
+      expect(rule).toContain(
+        "border:var(--border-width-hairline) solid var(--color-border-subtle)",
+      );
+      expect(rule).not.toContain(
+        "border:var(--border-width-hairline) solid var(--console-tone-fg)",
+      );
     }
   });
 

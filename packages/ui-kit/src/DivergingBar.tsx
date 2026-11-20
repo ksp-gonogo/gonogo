@@ -91,7 +91,7 @@ const DivergingBar__Track = styled.div`
   flex: 0 0 auto;
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   display: none;
 
   @container (min-width: ${DIVERGING_BAR_MIN_CONTAINER}) {

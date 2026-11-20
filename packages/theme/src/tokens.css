@@ -249,22 +249,22 @@ textarea {
   --color-accent-bg: #00ff88;
 
   /*
-   * The tone hues. A palette rung is named nowhere but this file: everything
+   * The status steps. A status step is named nowhere but this file: everything
    * else reaches a hue through the role token below that says what it is for.
    */
-  --palette-green-100: #cfe;
-  --palette-green-500: #3c8050;
-  --palette-green-700: #2e5a2e;
-  --palette-green-900: #0d180d;
-  --palette-red-100: #ffdede;
-  --palette-red-400: #ff4d4d;
-  --palette-red-900: #4a0e0e;
-  --palette-amber-200: #ffd68a;
-  --palette-amber-400: #ff8c00;
-  --palette-amber-600: #8a6a28;
-  --palette-amber-900: #3a2a0a;
-  --palette-blue-300: #7cf;
-  --palette-ink: #1a1a1a;
+  --status-go-1: #cfe;
+  --status-go-2: #3c8050;
+  --status-go-3: #2e5a2e;
+  --status-go-4: #0d180d;
+  --status-nogo-1: #ffdede;
+  --status-nogo-2: #ff4d4d;
+  --status-nogo-3: #4a0e0e;
+  --status-warn-1: #ffd68a;
+  --status-warn-2: #ff8c00;
+  --status-warn-3: #8a6a28;
+  --status-warn-4: #3a2a0a;
+  --status-info-1: #7cf;
+  --status-on-fill: #1a1a1a;
 
   /*
    * One tone scale, five roles per tone, so a colour is chosen by the job it
@@ -289,46 +289,46 @@ textarea {
   --color-neutral-on-status: var(--color-text-primary);
   --color-neutral-muted: var(--color-surface-raised);
 
-  --color-info-text: var(--palette-blue-300);
-  --color-info-mark: var(--palette-blue-300);
-  --color-info-status: var(--palette-blue-300);
-  --color-info-on-status: var(--palette-ink);
+  --color-info-text: var(--status-info-1);
+  --color-info-mark: var(--status-info-1);
+  --color-info-status: var(--status-info-1);
+  --color-info-on-status: var(--status-on-fill);
   --color-info-muted: var(--color-surface-panel);
 
-  --color-go-text: var(--palette-green-100);
-  --color-go-mark: var(--palette-green-500);
-  --color-go-status: var(--palette-green-700);
-  --color-go-on-status: var(--palette-green-100);
+  --color-go-text: var(--status-go-1);
+  --color-go-mark: var(--status-go-2);
+  --color-go-status: var(--status-go-3);
+  --color-go-on-status: var(--status-go-1);
   /* Kept this dark so --color-text-dim body text stays above 4.5:1 on it; a go card's green is carried by its edge. */
-  --color-go-muted: var(--palette-green-900);
+  --color-go-muted: var(--status-go-4);
 
-  --color-caution-text: var(--palette-amber-200);
-  --color-caution-mark: var(--palette-amber-200);
-  --color-caution-status: var(--palette-amber-200);
-  --color-caution-on-status: var(--palette-ink);
-  --color-caution-muted: var(--palette-amber-900);
+  --color-caution-text: var(--status-warn-1);
+  --color-caution-mark: var(--status-warn-1);
+  --color-caution-status: var(--status-warn-1);
+  --color-caution-on-status: var(--status-on-fill);
+  --color-caution-muted: var(--status-warn-4);
 
-  --color-warn-text: var(--palette-amber-200);
-  --color-warn-mark: var(--palette-amber-400);
+  --color-warn-text: var(--status-warn-1);
+  --color-warn-mark: var(--status-warn-2);
 
   /* The mark of a figure a model carried: held keeps the warn square, a modelled figure draws this blue as a triangle, so the two differ by shape and by hue. */
-  --color-modelled-mark: var(--palette-blue-300);
+  --color-modelled-mark: var(--status-info-1);
   /* The apsides, on an orbit drawing and beside their readouts. Neither is the held amber nor the modelled blue, so an apsis never reads as a mark about how current a figure is. */
   --color-apoapsis-mark: var(--color-data-12);
   --color-periapsis-mark: var(--color-data-15);
   /* The mark of a figure measured now, but of something other than what its label names. Not the held amber, the modelled blue or a go green, so it says nothing about how current the figure is. */
   --color-elsewhere-mark: var(--color-data-15);
-  --color-warn-status: var(--palette-amber-400);
-  --color-warn-on-status: var(--palette-ink);
-  --color-warn-muted: var(--palette-amber-900);
+  --color-warn-status: var(--status-warn-2);
+  --color-warn-on-status: var(--status-on-fill);
+  --color-warn-muted: var(--status-warn-4);
   /* The edge of a warn box drawn on its muted ground: decorative, the box's text carries the tone. */
-  --color-warn-muted-edge: var(--palette-amber-600);
+  --color-warn-muted-edge: var(--status-warn-3);
 
-  --color-nogo-text: var(--palette-red-100);
-  --color-nogo-mark: var(--palette-red-400);
-  --color-nogo-status: var(--palette-red-400);
-  --color-nogo-on-status: var(--palette-ink);
-  --color-nogo-muted: var(--palette-red-900);
+  --color-nogo-text: var(--status-nogo-1);
+  --color-nogo-mark: var(--status-nogo-2);
+  --color-nogo-status: var(--status-nogo-2);
+  --color-nogo-on-status: var(--status-on-fill);
+  --color-nogo-muted: var(--status-nogo-3);
 
   --color-offline-text: var(--color-text-dim);
   --color-offline-mark: var(--color-text-dim);
@@ -422,6 +422,49 @@ textarea {
   --color-data-24: #f5e07c; /* canary */
 
   --color-focus: #00ff88;
+
+  /*
+   * Colours that are not a status, a tag, a marker or a chart series but that
+   * widgets draw with: the ink of shadows and scrims, a light tint, the alarm
+   * and poll grounds, and the hues of diagrams and device glows. Each is a
+   * foundation value a theme sets. A strength of one (a 35% shadow, a 55%
+   * accent glow) is mixed from it where it is used, never written as a
+   * colour of its own.
+   */
+  --color-shadow: #000000;
+  /* The backing drawn behind text and marks the theme itself colours (a chart legend chip, a banner), so it has to contrast with them where a shadow does not. */
+  --color-scrim: #000000;
+  /* The marks drawn over map imagery, which is dark in every theme, so they do not follow the text and tag colours a light theme darkens. */
+  --color-imagery-ksc: #cccccc;
+  --color-imagery-launch-site: #888888;
+  --color-imagery-contract: #ffeb3b;
+  --color-imagery-anomaly: #00cccc;
+  --color-imagery-other: #838383;
+  --color-highlight: #ffffff;
+  --color-alarm-set: #14230f;
+  --color-alarm-arm: #37280c;
+  --color-alarm-fire: #500c0c;
+  --color-alarm-notice: #5a0f0f;
+  --color-alarm-offline: #781e1e;
+  --color-alarm-overlay: #14161a;
+  --color-poll-go: #28a050;
+  --color-poll-no-go: #a02828;
+  --color-poll-abort: #c82828;
+  --color-poll-none: #323232;
+  --color-diagram-orbit-burn: #ffb428;
+  --color-diagram-orbit-retro: #ff5000;
+  --color-diagram-atmosphere-oxygen: #50a0dc;
+  --color-diagram-atmosphere-inert: #dc8c3c;
+  --color-diagram-encounter: #40c8ff;
+  --color-diagram-flyby: #ffb440;
+  --color-diagram-impact: #ff4040;
+  --color-diagram-depth-above: #e65a5a;
+  --color-diagram-depth-level: #a0a0aa;
+  --color-diagram-depth-below: #5082e6;
+  --color-diagram-docking-misaligned: #ff9800;
+  --color-diagram-signal-live: #7cccff;
+  --color-diagram-danger: #ff3b30;
+  --color-diagram-power: #00cc66;
 
   /*
    * SPACING LADDER. One ladder for padding, margin AND gap, on a 2px grid
@@ -717,7 +760,8 @@ textarea {
   /* A bordered status box sized to --control-height. */
   --inset-status-box: var(--space-4) var(--space-8);
   /* A popover's content. */
-  --inset-popover: var(--space-8);
+  --inset-floating: var(--space-8);
+  --inset-popover: var(--inset-floating);
   /* A tooltip's content. */
   --inset-tooltip: var(--space-4) var(--space-8);
   /* The drop between an anchor and the popover it opens. */
@@ -910,8 +954,9 @@ textarea {
   --inset-tile-header: 0 var(--space-4);
   /* A dialog that stands alone over the app. */
   --inset-dialog: var(--space-24);
-  --inset-modal-bar: var(--space-12) var(--space-16);
-  --inset-modal-body: var(--space-16);
+  --inset-modal-bar: calc(var(--inset-floating) * 1.5)
+    calc(var(--inset-floating) * 2);
+  --inset-modal-body: calc(var(--inset-floating) * 2);
   /* A full-page route (the join page): its edge before any safe-area inset, and the space between its blocks. */
   --inset-page: var(--space-16);
   --gap-page: var(--space-24);
@@ -1034,6 +1079,42 @@ textarea {
   /* What `Block`'s side asides step --radius-display-frame to. */
   --radius-display-frame-aside: 4px;
   --radius-pill: 999px;
+  --radius-banner: 999px;
+
+  /* Border widths. A ring drawn as a box-shadow spread, a focus outline and a 1.5px stroke are not borders and keep their own values. */
+  --border-width-hairline: 1px;
+  --border-width-strong: 2px;
+
+  /* The two weights above regular that the kit sets. */
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* The multiplier every letter spacing is written with: 1 is as written. */
+  --tracking-scale: 1;
+
+  /*
+   * Drop shadows by level. A panel is raised and draws none. Every floating
+   * surface has a shadow of its own as drawn here, and a theme that sets a
+   * floating shadow writes the same one over all of them, so no surface is
+   * left behind.
+   */
+  --shadow-raised: none;
+  --shadow-popover: var(--shadow-popover-drop)
+    color-mix(in srgb, var(--color-shadow) 35%, transparent);
+  --shadow-banner: 0 4px 12px
+    color-mix(in srgb, var(--color-shadow) 55%, transparent);
+  --shadow-fab: 0 4px 12px
+    color-mix(in srgb, var(--color-shadow) 50%, transparent);
+  --shadow-menu: 0 8px 24px
+    color-mix(in srgb, var(--color-shadow) 50%, transparent);
+  --shadow-modal: 0 8px 32px
+    color-mix(in srgb, var(--color-shadow) 60%, transparent);
+  --shadow-overlay: 0 8px 32px
+    color-mix(in srgb, var(--color-shadow) 70%, transparent);
+  --shadow-dialog: 0 12px 40px
+    color-mix(in srgb, var(--color-shadow) 50%, transparent);
+  --shadow-takeover: 0 12px 48px
+    color-mix(in srgb, var(--color-shadow) 60%, transparent);
   --radius-circle: 50%;
 
   /*
@@ -1162,11 +1243,13 @@ textarea {
    * guard, and the `animation` shorthand must stay INSIDE that guard
    * with its keyframes.
    */
-  --duration-instant: 80ms;
-  --duration-fast: 120ms;
-  --duration-base: 150ms;
-  --duration-slow: 200ms;
-  --duration-entrance: 320ms;
+  /* A theme's multiplier on the five durations; 1 is as written below. */
+  --motion-speed: 1;
+  --duration-instant: calc(80ms * var(--motion-speed));
+  --duration-fast: calc(120ms * var(--motion-speed));
+  --duration-base: calc(150ms * var(--motion-speed));
+  --duration-slow: calc(200ms * var(--motion-speed));
+  --duration-entrance: calc(320ms * var(--motion-speed));
 
   --ease-standard: ease;
   --ease-emphasis: ease-in-out;

@@ -56,14 +56,14 @@ const THROTTLE_COLUMN: CSSProperties = {
 
 const THROTTLE_LABEL: CSSProperties = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.12em",
+  letterSpacing: "calc(0.12em * var(--tracking-scale))",
   color: "var(--color-text-faint)",
 };
 
 const THROTTLE_BAR: CSSProperties = {
   width: "14px",
   height: "100px",
-  border: "1px solid var(--color-border-subtle)",
+  border: "var(--border-width-hairline) solid var(--color-border-subtle)",
   background: "var(--color-surface-app)",
   position: "relative",
   overflow: "hidden",
@@ -76,7 +76,7 @@ const THROTTLE_FILL: CSSProperties = {
   right: 0,
   background: "var(--color-accent-fg)",
   // Off the motion scale: an 80ms chase of live throttle must not move when the UI motion tokens are retuned.
-  transition: "height 80ms linear",
+  transition: "height var(--duration-instant) var(--ease-linear)",
 };
 
 const THROTTLE_VAL: CSSProperties = {

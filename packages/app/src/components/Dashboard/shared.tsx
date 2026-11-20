@@ -113,7 +113,7 @@ const highlightPulse = keyframes`
   0% {
     box-shadow:
       0 0 0 2px var(--color-accent-fg),
-      0 0 18px 4px rgba(0, 255, 136, 0.55);
+      0 0 18px 4px color-mix(in srgb, var(--color-accent-fg) 55%, transparent);
   }
   100% {
     box-shadow:
@@ -173,7 +173,7 @@ const WidgetErrorPanel = styled.div`
   gap: var(--gap-related);
   padding: var(--inset-tile-message);
   background: var(--color-nogo-muted);
-  border: 1px solid var(--color-nogo-muted);
+  border: var(--border-width-hairline) solid var(--color-nogo-muted);
   color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   text-align: center;
@@ -181,7 +181,7 @@ const WidgetErrorPanel = styled.div`
 
 const WidgetErrorTitle = styled.div`
   font-size: var(--font-size-value);
-  font-weight: bold;
+  font-weight: var(--font-weight-bold);
   color: var(--color-nogo-text);
 `;
 
@@ -199,7 +199,7 @@ const WidgetErrorRetry = styled.button`
   margin-top: var(--gap-actions);
   padding: var(--inset-control);
   background: var(--color-nogo-muted);
-  border: 1px solid var(--color-nogo-muted);
+  border: var(--border-width-hairline) solid var(--color-nogo-muted);
   color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   cursor: pointer;

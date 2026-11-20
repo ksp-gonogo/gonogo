@@ -592,7 +592,7 @@ const TinyEssentials__HeroFigure = styled.dd<{ $tone: Tone }>`
     20cqw,
     calc(var(--font-size-lg) * 2)
   );
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -630,7 +630,7 @@ const TinyEssentials__Gauge = styled.svg`
 
 const TinyEssentials__Label = styled.dt`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
   white-space: nowrap;
@@ -688,7 +688,7 @@ const TinyEssentials__RowFigure = styled.dd<{ $tone: Tone }>`
   gap: var(--gap-figure-parts);
   margin: 0;
   font-size: var(--font-size-value);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: ${({ $tone }) => TONE_TEXT[$tone]};

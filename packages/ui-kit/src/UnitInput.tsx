@@ -384,7 +384,7 @@ const Control = styled.div`
 const nameStyles = `
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
 `;
 
@@ -405,7 +405,7 @@ const ValueRow = styled.div`
 
 const SingleField = styled.input`
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   color: var(--color-text-primary);
   font-size: var(--font-size-value);
   padding: var(--inset-field-compact);

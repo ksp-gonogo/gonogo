@@ -39,13 +39,13 @@ const KIND_MARK: Record<BurnInstantKind, "round" | "diamond"> = {
 const CAPTION: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
-  letterSpacing: "0.04em",
+  letterSpacing: "calc(0.04em * var(--tracking-scale))",
 };
 
 const KIND_CHIP: CSSProperties = {
   fontSize: "var(--font-size-caption)",
-  fontWeight: 600,
-  letterSpacing: "0.08em",
+  fontWeight: "var(--font-weight-semibold)",
+  letterSpacing: "calc(0.08em * var(--tracking-scale))",
   textTransform: "uppercase",
 };
 

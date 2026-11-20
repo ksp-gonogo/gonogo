@@ -42,7 +42,7 @@ export const GraphCard = styled.button<{
   font-family: inherit;
   cursor: pointer;
   border-radius: var(--radius-regular);
-  border: 1px solid ${(p) => graphCardBorder(p.$ds, p.$dimmed)};
+  border: var(--border-width-hairline) solid ${(p) => graphCardBorder(p.$ds, p.$dimmed)};
   border-left-width: 3px;
   background: ${(p) => graphCardBg(p.$ds, p.$dimmed)};
   ${(p) => (p.$ds === "locked" || p.$dimmed ? faintText() : "")}
@@ -65,7 +65,7 @@ export const GraphCard = styled.button<{
 // Off both type scales: the fixed CARD_H of 48 leaves a 37px content budget that the title already fills; changing these means raising CARD_H.
 export const GraphCardTitle = styled.span<{ $reserve: string }>`
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   line-height: 1.15;
   overflow: hidden;
@@ -107,7 +107,7 @@ export const GraphResearched = styled.span<{ $dimmed: boolean }>`
   font-size: 10px;
   color: ${(p) =>
     p.$dimmed ? "var(--color-text-faint)" : "var(--color-go-text)"};
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 `;
 
 /** A part's title in the node's parts list: wraps like the node's description rather than truncating, so a long stock title stays readable. */

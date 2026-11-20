@@ -793,13 +793,13 @@ const RowActions = styled.div`
 
 const GraphButton = styled.button<{ $open: boolean }>`
   background: ${({ $open }) => ($open ? "var(--color-go-status)" : "none")};
-  border: 1px solid ${({ $open }) => ($open ? "var(--color-go-status)" : "var(--color-border-strong)")};
+  border: var(--border-width-hairline) solid ${({ $open }) => ($open ? "var(--color-go-status)" : "var(--color-border-strong)")};
   color: ${({ $open }) => ($open ? "var(--color-go-text)" : "var(--color-text-muted)")};
   cursor: pointer;
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 
   @media (hover: hover) {
     &:hover {
@@ -811,13 +811,13 @@ const GraphButton = styled.button<{ $open: boolean }>`
 
 const ExportButton = styled.button`
   background: none;
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 
   @media (hover: hover) {
     &:hover {
@@ -829,13 +829,13 @@ const ExportButton = styled.button`
 
 const ReplayButton = styled.button`
   background: none;
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 
   @media (hover: hover) {
     &:hover {
@@ -852,7 +852,7 @@ const RecordingToolbar = styled.div`
   gap: var(--gap-section);
   padding-bottom: var(--inset-toolbar-bottom);
   margin-bottom: var(--gap-toolbar);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
 `;
 
 const MissionHint = styled.span`
@@ -865,12 +865,12 @@ const RecordingBadge = styled.span`
   align-items: center;
   gap: var(--gap-related);
   background: var(--color-nogo-status);
-  border: 1px solid var(--color-nogo-mark);
+  border: var(--border-width-hairline) solid var(--color-nogo-mark);
   color: var(--color-nogo-on-status);
   font-size: var(--font-size-compact);
   padding: var(--inset-chip);
   border-radius: var(--radius-regular);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 `;
 
 const Table = styled.table`
@@ -884,11 +884,11 @@ const Th = styled.th`
   text-align: left;
   padding: var(--inset-surface);
   font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-faint);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
 `;
 
 const Tr = styled.tr<{ $current: boolean }>`
@@ -902,7 +902,7 @@ const Td = styled.td`
      header row. It tracks Th, not the spacing grid. */
   padding: 7px var(--gutter-table-cell);
   color: var(--color-text-primary);
-  border-bottom: 1px solid var(--color-surface-raised);
+  border-bottom: var(--border-width-hairline) solid var(--color-surface-raised);
   white-space: nowrap;
 `;
 
@@ -943,11 +943,11 @@ const OutcomeBadge = styled.span<{ $tone: "go" | "nogo" }>`
      maps to by value would visibly square these GO/NO-GO pills. */
   border-radius: var(--radius-pill);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   cursor: help;
   background: ${(p) =>
     p.$tone === "go" ? "var(--color-go-status)" : "var(--color-nogo-mark)"};
-  border: 1px solid
+  border: var(--border-width-hairline) solid
     ${(p) =>
       p.$tone === "go" ? "var(--color-go-status)" : "var(--color-nogo-mark)"};
   color: ${(p) =>
@@ -962,7 +962,7 @@ const ConfirmRow = styled.div`
 
 const DangerButton = styled.button`
   background: var(--color-tag-dark-brown-bg);
-  border: 1px solid var(--color-nogo-muted);
+  border: var(--border-width-hairline) solid var(--color-nogo-muted);
   color: var(--color-tag-red-fg);
   cursor: pointer;
   font-size: var(--font-size-compact);
@@ -973,7 +973,7 @@ const DangerButton = styled.button`
 
 const CancelButton = styled.button`
   background: none;
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-compact);
@@ -988,7 +988,7 @@ const Footer = styled.div`
   align-items: center;
   gap: var(--gap-section);
   padding: var(--inset-table-footer);
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: var(--border-width-hairline) solid var(--color-border-subtle);
 `;
 
 const BulkActions = styled.div`
@@ -1001,14 +1001,14 @@ const BulkActions = styled.div`
 const SelectionCount = styled.span`
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
 `;
 
 const ThCheckbox = styled.th`
   width: 28px;
   padding: var(--inset-surface);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
 `;
 
 const SelectCheckbox = styled.input.attrs({ type: "checkbox" })`
@@ -1024,7 +1024,7 @@ const ThStar = styled.th`
   padding: var(--inset-table-narrow-header);
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
   text-align: center;
 `;
 
@@ -1050,7 +1050,7 @@ const AutoDeleteHint = styled.span`
 
 const ClearAllButton = styled.button`
   background: none;
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   color: var(--color-text-dim);
   cursor: pointer;
   font-size: var(--font-size-compact);

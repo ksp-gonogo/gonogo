@@ -13,7 +13,7 @@ function Diagram() {
       style={{
         width: 480,
         height: 320,
-        border: "1px solid var(--color-border-subtle)",
+        border: "var(--border-width-hairline) solid var(--color-border-subtle)",
         overflow: "hidden",
       }}
     >

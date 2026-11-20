@@ -24,6 +24,8 @@ import { CrashScreen } from "./CrashScreen";
 import { kspHostSeeded } from "./dataSources"; // importing it triggers all data source self-registration
 import { stampBootRole } from "./screens/bootIdentity";
 import { bootsWithoutDirectMod } from "./screens/route";
+import { ThemeHost } from "./theme/ThemeHost";
+import { chosenThemeId } from "./theme/themeChoice";
 import { setConsentBatchPrompt } from "./uplinks/consent";
 import { promptForConsents } from "./uplinks/consentModal";
 import { loaderBootIdsOverride } from "./uplinks/flag";
@@ -52,9 +54,9 @@ const root = document.getElementById("root");
 if (!root) throw new Error("Could not find root node.");
 
 // Theme registration is a side-effect of importing `@ksp-gonogo/components`
-// (above), so by this point `default-dark` is in the registry. A future
-// settings UI can swap this for a stateful selection driven by user choice.
-const activeTheme = getTheme("default-dark");
+// (above), so by this point every bundled theme is in the registry. The stored
+// choice picks what the boot prompts use; `ThemeHost` draws the app and follows changes.
+const activeTheme = getTheme(chosenThemeId());
 if (!activeTheme) throw new Error("default-dark theme failed to register");
 const activeThemeValue = activeTheme.theme;
 const rootNode = root;
@@ -69,11 +71,11 @@ function renderApp(): void {
           </UiKitThemeProvider>
         )}
       >
-        <UiKitThemeProvider theme={activeThemeValue}>
+        <ThemeHost>
           <ModalProvider>
             <App />
           </ModalProvider>
-        </UiKitThemeProvider>
+        </ThemeHost>
       </ErrorBoundary>
     </StrictMode>,
   );

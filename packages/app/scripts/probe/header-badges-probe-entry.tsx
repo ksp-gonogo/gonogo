@@ -1,7 +1,10 @@
 import { clearContributions, registerContribution } from "@ksp-gonogo/core";
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import type { BadgeEntry } from "@ksp-gonogo/sitrep-sdk";
-import { harnessTheme, StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  harnessThemeFull,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { BannerStack } from "@ksp-gonogo/ui";
 import {
   createDomainAvailabilityStore,
@@ -59,7 +62,7 @@ async function renderScene(scene: Scene): Promise<void> {
   client = new TelemetryClient(new StubTransport());
   root = createRoot(host);
   root.render(
-    <ThemeProvider theme={harnessTheme}>
+    <ThemeProvider theme={harnessThemeFull}>
       <DomainAvailabilityContext.Provider value={availability}>
         <TelemetryProvider client={client}>
           <BannerStack>

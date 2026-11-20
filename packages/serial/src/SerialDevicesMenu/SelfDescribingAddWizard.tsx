@@ -418,7 +418,7 @@ const Wrap = styled.div`
   flex-direction: column;
   gap: var(--gap-section);
   padding: var(--inset-wizard);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
 `;
@@ -427,7 +427,7 @@ const Header = styled.h4`
   margin: 0;
   font-size: var(--font-size-caption);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: var(--color-text-faint);
 `;
 
@@ -444,7 +444,7 @@ const PulseDot = styled.span`
   height: 8px;
   border-radius: var(--radius-circle);
   background: var(--color-info-mark);
-  box-shadow: 0 0 6px rgba(124, 204, 255, 0.7);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-diagram-signal-live) 70%, transparent);
   flex-shrink: 0;
 
   @media (prefers-reduced-motion: no-preference) {

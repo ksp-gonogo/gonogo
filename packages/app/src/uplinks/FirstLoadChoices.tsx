@@ -174,7 +174,7 @@ export function FirstLoadChoices({
 const SectionHeading = styled.h3`
   margin: 0;
   font-size: var(--font-size-caption);
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
 `;
@@ -185,7 +185,7 @@ const Rows = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: var(--border-width-hairline) solid var(--color-border-subtle);
 `;
 
 const ChoiceRow = styled.div`
@@ -194,7 +194,7 @@ const ChoiceRow = styled.div`
   justify-content: space-between;
   gap: var(--gap-related-comfortable);
   padding: var(--gap-related) 0;
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
 `;
 
 const Meta = styled.span`

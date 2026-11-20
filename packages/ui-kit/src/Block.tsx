@@ -76,7 +76,7 @@ export interface BlockProps
 /** The name, sized as one. Type belongs to the arrangement, so `Card.Title` is this same object. */
 const Block__Title = styled.div`
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   /* One rung above the body the arrangement sets; both halves are declared here, so a site cannot break the step. */
   font-size: var(--font-size-value);
   line-height: var(--line-height-tight);

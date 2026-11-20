@@ -69,6 +69,21 @@ export function canvasColor(
   return v || fallback;
 }
 
+/**
+ * A theme colour at a given strength, for a `<canvas>` 2D context: the custom
+ * property is resolved on the canvas, then mixed with transparent. A property
+ * the page does not define draws nothing.
+ */
+export function canvasTint(
+  el: HTMLElement,
+  varName: string,
+  percent: number,
+): string {
+  const resolved = canvasColor(el, varName, "transparent");
+  const strength = `${percent}`.concat("%");
+  return `color-mix(in srgb, ${resolved} ${strength}, transparent)`;
+}
+
 /** Sizes a canvas to the container and returns its 2D context, or `null` where the platform has none. */
 export function sizedContext(
   canvas: HTMLCanvasElement,
@@ -126,6 +141,7 @@ export function paintMapBase(
     ctx.setTransform(...cameraTransform(camera, w, h, shift));
     paintBaseSurface(ctx, {
       textureImage,
+      wash: canvasTint(canvas, "--color-shadow", 25),
       sketch,
       inkSketch:
         inkSketch?.coarse != null
@@ -145,7 +161,7 @@ export function paintMapBase(
 
     // lineWidth compensates for zoom so grid lines stay 1 screen pixel.
     ctx.strokeStyle = surfacePainted
-      ? "rgba(255,255,255,0.05)"
+      ? canvasTint(canvas, "--color-highlight", 5)
       : canvasColor(canvas, "--color-surface-raised", "#1a1a1a");
     ctx.lineWidth = 1 / camera.zoom;
     for (let lat30 = -60; lat30 <= 60; lat30 += 30) {
@@ -164,7 +180,7 @@ export function paintMapBase(
     }
 
     ctx.strokeStyle = surfacePainted
-      ? "rgba(255,255,255,0.15)"
+      ? canvasTint(canvas, "--color-highlight", 15)
       : canvasColor(canvas, "--color-border-subtle", "#2a2a2a");
     ctx.lineWidth = 1.5 / camera.zoom;
     const { y: eqY } = latLonToMap(0, 0, WORLD_W, WORLD_H);
@@ -231,6 +247,7 @@ function lastSample(segments: readonly TrackSample[][]): TrackSample | null {
  * the SOI ring and the impact cross.
  */
 export function paintPrediction(
+  canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
   {
     w,
@@ -286,8 +303,8 @@ export function paintPrediction(
     const r = MAP_MARK.endMarker / camera.zoom;
     ctx.strokeStyle =
       encounterKind === "encounter"
-        ? "rgba(64, 200, 255, 0.9)"
-        : "rgba(255, 180, 64, 0.9)";
+        ? canvasTint(canvas, "--color-diagram-encounter", 90)
+        : canvasTint(canvas, "--color-diagram-flyby", 90);
     ctx.fillStyle = ctx.strokeStyle;
     ctx.lineWidth = MAP_MARK.trackWidth / camera.zoom;
     for (const shift of worldRepeats(x, x, camera, w, MAP_MARK.endMarker)) {
@@ -305,7 +322,7 @@ export function paintPrediction(
   if (impactLat !== undefined && impactLon !== undefined) {
     const { x, y: iy } = adjustedMap(WORLD_W, WORLD_H, impactLat, impactLon);
     const crossSize = MAP_MARK.endMarker / camera.zoom;
-    ctx.strokeStyle = "rgba(255, 64, 64, 0.9)";
+    ctx.strokeStyle = canvasTint(canvas, "--color-diagram-impact", 90);
     ctx.lineWidth = MAP_MARK.trackWidth / camera.zoom;
     for (const shift of worldRepeats(x, x, camera, w, MAP_MARK.endMarker)) {
       const ix = x + shift;
@@ -404,7 +421,7 @@ export function paintVesselMarker(
   x: number,
   y: number,
 ): void {
-  paintCrosshair(ctx, x, y, false);
+  paintCrosshair(canvas, ctx, x, y, false);
   // A map is ocean, land, desert and ice, so the mark takes its keyline here.
   paintVesselMark(canvas, ctx, "current", x, y, MAP_MARK.radius, {
     keyline: true,
@@ -440,12 +457,13 @@ export function paintSpread(
 
 /** The crosshair through a position: solid for a current one, dashed where it is held. */
 export function paintCrosshair(
+  canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   held: boolean,
 ): void {
-  ctx.strokeStyle = "rgba(0,255,136,0.6)";
+  ctx.strokeStyle = canvasTint(canvas, "--color-accent-fg", 60);
   ctx.lineWidth = MAP_MARK.crosshairWidth;
   ctx.setLineDash(held ? [3, 3] : []);
   const cross = MAP_MARK.crosshair;

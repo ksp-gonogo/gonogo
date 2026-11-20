@@ -122,7 +122,7 @@ export const Fill: Story = {
         flexDirection: "column",
         height: 150,
         padding: "var(--inset-popover)",
-        border: "1px solid var(--color-border-subtle)",
+        border: "var(--border-width-hairline) solid var(--color-border-subtle)",
       }}
     >
       <InWidget>

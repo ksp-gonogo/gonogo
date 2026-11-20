@@ -104,7 +104,8 @@ export const FillScrolls: Story = {
         display: "flex",
         flexDirection: "column",
         gap: "var(--gap-related)",
-        border: "1px dashed var(--color-border-subtle)",
+        border:
+          "var(--border-width-hairline) dashed var(--color-border-subtle)",
       }}
     >
       <Text weight="semibold">Flight log · Kerbal X</Text>

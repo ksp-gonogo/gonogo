@@ -26,7 +26,7 @@ export const ConnectLayout = styled.div`
 
 export const ConnectBox = styled.div`
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: 8px;
   padding: 40px 48px;
   max-width: 420px;
@@ -64,11 +64,11 @@ export const HostInput = styled.input`
   flex: 1 1 0;
   min-width: 0;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-text-faint);
+  border: var(--border-width-hairline) solid var(--color-text-faint);
   border-radius: 4px;
   padding: 8px 12px;
   font-size: 20px;
-  letter-spacing: 0.15em;
+  letter-spacing: calc(0.15em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-info-text);
 
@@ -98,12 +98,12 @@ export const ConnectButton = styled.button`
   white-space: nowrap;
   text-align: center;
   background: var(--color-info-muted);
-  border: 1px solid var(--color-info-mark);
+  border: var(--border-width-hairline) solid var(--color-info-mark);
   border-radius: 4px;
   padding: 8px 20px;
   color: var(--color-info-text);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
 
   &:hover:not(:disabled) {
@@ -156,7 +156,7 @@ export const DiagnosticsRow = styled.div`
 
 export const DiagnosticsButton = styled.button`
   background: transparent;
-  border: 1px solid var(--color-text-faint);
+  border: var(--border-width-hairline) solid var(--color-text-faint);
   border-radius: 4px;
   padding: 4px 10px;
   color: var(--color-text-muted);
@@ -181,7 +181,7 @@ export const DiagnosticsButton = styled.button`
 export const NameRow = styled.div`
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px dashed var(--color-border-subtle);
+  border-top: var(--border-width-hairline) dashed var(--color-border-subtle);
 `;
 
 export const StageList = styled.ul`

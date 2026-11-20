@@ -9,7 +9,7 @@ import {
 import type { JSXElementConstructor, ReactElement, ReactNode } from "react";
 import { createElement } from "react";
 import { ThemeProvider } from "styled-components";
-import { harnessTheme } from "./theme";
+import { harnessThemeFull } from "./theme";
 
 // A kit primitive reads `theme.colors` off styled-components' context and throws a TypeError without a provider; spacing and radii resolve without one.
 type Wrapper = JSXElementConstructor<{ children: ReactNode }>;
@@ -23,7 +23,7 @@ function withTheme(Extra?: Wrapper): Wrapper {
   return function HarnessWrapper({ children }: { children: ReactNode }) {
     return createElement(
       ThemeProvider,
-      { theme: harnessTheme },
+      { theme: harnessThemeFull },
       Extra ? createElement(Extra, null, children) : children,
     );
   };
@@ -40,7 +40,7 @@ function withTheme(Extra?: Wrapper): Wrapper {
  * `environment: "jsdom"` in its config.
  * Its options and result are the ones Testing Library's `render` takes and
  * returns, with its default queries, which the signature shows as `queries`.
- * The kit's theme here is the small stand-in {@link harnessTheme}, so this
+ * The kit's theme here is the stand-in {@link harnessThemeFull}, so this
  * package does not depend on the kit. Useful for testing what an operator sees of a ui-kit
  * component or a widget.
  *

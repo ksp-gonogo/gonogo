@@ -115,8 +115,9 @@ export const PanelContainer = styled.div<{
   background: var(--color-surface-panel);
   /* A size container, so the popped-open aside sizes itself in cqw against the panel's width. */
   container-type: inline-size;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
+  box-shadow: var(--shadow-raised);
   /* Top only: the delay rail's band, reserved on every widget so a command in flight never pushes the title down. Sides and bottom stay zero so visual content can reach the chrome. */
   padding: var(--panel-rail-band) 0 0;
   /* When the rail travels with the header, the band is the sticky unit's first row instead. */
@@ -360,10 +361,9 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
         max-width: 90cqw;
         padding: var(--inset-popover);
         background: var(--color-surface-panel);
-        border: 1px solid var(--color-border-subtle);
+        border: var(--border-width-hairline) solid var(--color-border-subtle);
         border-radius: var(--radius-regular);
-        box-shadow: var(--shadow-popover-drop)
-          rgba(0, 0, 0, 0.35);
+        box-shadow: var(--shadow-popover);
       }
     `}
 `;
@@ -939,7 +939,7 @@ const ScrollAreaRoot = styled.div<{
     flex: 0 1 auto;
     margin-inline: 0;
     --bleed-inline: var(--gap-related);
-    border: 1px solid var(--color-border-subtle);
+    border: var(--border-width-hairline) solid var(--color-border-subtle);
     border-radius: var(--radius-regular);
     overflow: hidden;
     max-height: ${$maxHeight ?? "16rem"};
@@ -1653,7 +1653,7 @@ const PanelSummaryBadge__Pulse = styled.span<{ $pulse: number }>`
  */
 export const PanelFooter = styled.div`
   flex-shrink: 0;
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: var(--border-width-hairline) solid var(--color-border-subtle);
   padding: var(--inset-panel-footer);
   background: var(--color-surface-panel);
 `;
@@ -1827,7 +1827,7 @@ const PanelHoverTitlePill = styled(VisuallyHidden)`
     height: auto;
     clip: auto;
     background: var(--color-surface-raised);
-    border: 1px solid var(--color-border-strong);
+    border: var(--border-width-hairline) solid var(--color-border-strong);
     border-radius: var(--radius-pill);
     padding: var(--inset-chip);
   }

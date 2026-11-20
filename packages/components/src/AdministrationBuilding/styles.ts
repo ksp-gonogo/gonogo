@@ -18,7 +18,7 @@ export const StrategyCard = styled(Block).attrs({
   forwardedAs: "article" as const,
 })<{ $active?: boolean }>`
   padding: var(--inset-surface);
-  border: 1px solid
+  border: var(--border-width-hairline) solid
     ${({ $active }) =>
       $active ? "var(--color-go-mark)" : "var(--color-border-subtle)"};
   border-radius: var(--radius-regular);
@@ -38,7 +38,7 @@ export const StrategyName = styled(Button)`
 export const CardDept = styled.span`
   color: var(--color-text-dim);
   font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -99,7 +99,7 @@ export const LockedScreen = styled.p`
 export const FactorTag = styled.span`
   font-size: var(--font-size-caption);
   color: var(--color-text-dim);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 `;
 
 export const Description = styled.p`
@@ -126,7 +126,7 @@ export const FactorRow = styled.div`
 
 export const FactorLabel = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;

@@ -73,7 +73,7 @@ const Frame = styled.section`
   gap: var(--gap-related-comfortable);
   padding: var(--inset-surface-standalone);
   background: var(--color-surface-sunken);
-  border: 1px solid var(--color-nogo-status);
+  border: var(--border-width-hairline) solid var(--color-nogo-status);
   border-radius: var(--radius-regular);
 `;
 
@@ -101,7 +101,7 @@ const Item = styled.li`
 `;
 
 const ItemName = styled.span`
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
 `;
 

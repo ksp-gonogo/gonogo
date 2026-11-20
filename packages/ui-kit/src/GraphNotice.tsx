@@ -152,7 +152,7 @@ const GraphNotice__Root = styled.div<{ $placement: GraphNoticePlacement }>`
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   /* No surface token is translucent, so this scrim stays a raw value. */
-  background: rgba(0, 0, 0, 0.7);
+  background: color-mix(in srgb, var(--color-scrim) 70%, transparent);
   padding: var(--inset-notice-pill);
   border-radius: ${RADIUS_VAR.regular};
   pointer-events: none;

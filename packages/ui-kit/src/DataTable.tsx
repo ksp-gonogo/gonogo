@@ -323,12 +323,12 @@ const DataTable__HeaderCell = styled.th<{ $align: "start" | "end" }>`
   background: var(--color-surface-panel);
   color: var(--color-text-faint);
   font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   white-space: nowrap;
   padding: var(--inset-table-cell);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
 `;
 
 const DataTable__SectionCell = styled.th`
@@ -336,11 +336,11 @@ const DataTable__SectionCell = styled.th`
   background: var(--color-surface-raised);
   color: var(--color-text-muted);
   font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   padding: var(--inset-table-section);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
 `;
 
 /* A row and its detail are one record, so only the bottom of the pair is ruled. */
@@ -364,7 +364,7 @@ const DataTable__Cell = styled.td<{ $align: "start" | "end" }>`
 
 const DataTable__DetailCell = styled.td`
   padding: var(--inset-table-detail);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
 `;
 
 const DataTable__EmptyCell = styled.td`

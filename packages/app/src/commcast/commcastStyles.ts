@@ -147,7 +147,7 @@ export const ThreadMarker = styled.div<{ $blocked?: boolean }>`
   align-items: center;
   gap: var(--gap-related);
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: ${({ $blocked }) =>
     $blocked ? "var(--color-nogo-text)" : "var(--color-text-faint)"};
@@ -156,7 +156,7 @@ export const ThreadMarker = styled.div<{ $blocked?: boolean }>`
   &::after {
     content: "";
     flex: 1 1 auto;
-    border-top: 1px solid
+    border-top: var(--border-width-hairline) solid
       ${({ $blocked }) =>
         $blocked ? "var(--color-nogo-text)" : "var(--color-border-subtle)"};
   }
@@ -177,7 +177,7 @@ export const Commcast__Meta = styled.div`
 
 export const Author = styled.span<{ $pilot: boolean }>`
   font-size: var(--font-size-compact);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: ${({ $pilot }) =>
     $pilot ? "var(--color-go-text)" : "var(--color-info-mark)"};
 `;

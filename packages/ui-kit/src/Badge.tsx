@@ -226,9 +226,9 @@ const Badge__Body = styled.span<{
   /* Sized by its own text, never stretched to a taller flex sibling. */
   align-self: center;
   ${fitBox("badge")}
-  border: 1px solid;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  border: var(--border-width-hairline) solid;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   white-space: nowrap;
 

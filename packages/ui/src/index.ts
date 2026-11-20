@@ -50,3 +50,7 @@ export * from "./useElementSize";
 export * from "./VersionMismatchBanner";
 export * from "./VisuallyHidden";
 export * from "./WidgetAtTileSize";
+import "./themes/apollo";
+import "./themes/daylight";
+import "./themes/dense";
+import "./themes/highContrast";

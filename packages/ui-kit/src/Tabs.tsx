@@ -448,7 +448,7 @@ const Tabs__Blob = styled.span`
   bottom: var(--inset-tab-track);
   border-radius: var(--radius-pill);
   background: var(--color-accent-bg);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-shadow) 35%, transparent);
   transition:
     left var(--duration-base) var(--ease-standard),
     width var(--duration-base) var(--ease-standard);
@@ -486,14 +486,16 @@ const Tabs__Button = styled.button<{
     $active ? "var(--color-text-inverse)" : "var(--color-text-faint)"};
   cursor: pointer;
   font-size: var(--font-size-compact);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   border-radius: var(--radius-pill);
   /* Compact gives back the inset and tracking, never the label. Plain concatenation: a nested template literal breaks the parse. */
   ${({ $compact }) =>
     $compact
-      ? "padding: var(--inset-tab-compact);" + "letter-spacing: 0.04em;"
-      : "padding: var(--inset-control);" + "letter-spacing: 0.12em;"}
+      ? "padding: var(--inset-tab-compact);" +
+        "letter-spacing: calc(0.04em * var(--tracking-scale));"
+      : "padding: var(--inset-control);" +
+        "letter-spacing: calc(0.12em * var(--tracking-scale));"}
   /* The label gives under the press, the only feedback a tab gets on touch. */
   transition: transform var(--duration-fast) var(--ease-standard);
 

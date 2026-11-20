@@ -212,15 +212,26 @@ function report(uses: Use[]): string {
   return uses.map((u) => `  ${u.file}:${u.line}  ${u.found}`).join("\n");
 }
 
+/**
+ * The files that map a theme's foundation values onto the variables, so they
+ * name every rung by construction: the theme itself, the table that writes it,
+ * and the copy the sdk's test harness mounts.
+ */
+const THEME_MAPPING_FILES = new Set([
+  "packages/theme/src/defaultDarkTheme.ts",
+  "packages/theme/src/themeVariables.ts",
+  "mod/sitrep-sdk/src/__generated__/test-theme.ts",
+]);
+
 const DECLARED = declaredTokens();
 const RUNG_PATTERN = `${NAMESPACE}[a-z0-9]+`;
 const FALLBACK_PATTERN = "var\\( *--[a-z0-9-]+ *,";
 
 describe("design-system: spacing is written as a job, everywhere", () => {
   it("references a raw rung nowhere but a tokens.css definition", () => {
-    const uses = trackedFilesMatching(RUNG_PATTERN).flatMap((rel) =>
-      scanForRungs(read(rel), rel),
-    );
+    const uses = trackedFilesMatching(RUNG_PATTERN)
+      .filter((rel) => !THEME_MAPPING_FILES.has(rel))
+      .flatMap((rel) => scanForRungs(read(rel), rel));
     expect(
       uses,
       `${uses.length} raw spacing rung reference(s):\n${report(uses)}\n` +

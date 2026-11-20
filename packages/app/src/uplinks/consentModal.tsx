@@ -19,7 +19,7 @@ import { type FirstLoadAnswers, FirstLoadChoices } from "./FirstLoadChoices";
 const Backdrop = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.82);
+  background: color-mix(in srgb, var(--color-shadow) 82%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -29,7 +29,7 @@ const Backdrop = styled.div`
 const Dialog = styled.div`
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-floating);
   max-width: 640px;
   width: calc(100% - 2rem);
@@ -40,7 +40,7 @@ const Dialog = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related-comfortable);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-dialog);
 
   h2 {
     margin: 0;

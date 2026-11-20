@@ -130,6 +130,6 @@ const READOUT_BODY: CSSProperties = {
 const READOUT_LABEL: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
-  letterSpacing: "0.04em",
+  letterSpacing: "calc(0.04em * var(--tracking-scale))",
   flex: "0 0 auto",
 };

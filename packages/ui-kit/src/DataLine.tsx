@@ -160,7 +160,7 @@ const DataLine__Root = styled.div<{ $aligned: boolean; $grouped: boolean }>`
 
 const DataLine__Label = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
 `;

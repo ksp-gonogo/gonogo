@@ -174,7 +174,7 @@ const StatusLabel = styled.span<{ $color: string }>`
   font-size: var(--font-size-caption);
   color: ${({ $color }) => $color};
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
 `;
 
 const Detail = styled.span`
@@ -199,7 +199,7 @@ const Facts = styled.dl`
 const FactLabel = styled.dt`
   color: var(--color-text-faint);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   white-space: nowrap;
 `;
 

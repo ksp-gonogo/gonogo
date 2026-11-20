@@ -11,7 +11,7 @@ function Tile({ height, children }: { height: number; children: ReactNode }) {
         height,
         display: "flex",
         flexDirection: "column",
-        border: "1px solid var(--color-border-subtle)",
+        border: "var(--border-width-hairline) solid var(--color-border-subtle)",
       }}
     >
       {children}

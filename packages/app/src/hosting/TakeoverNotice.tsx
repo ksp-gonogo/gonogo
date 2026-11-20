@@ -42,7 +42,7 @@ const TakeoverNotice__Banner = styled.div`
   max-width: calc(100vw - 2 * var(--gutter-screen) - 5rem);
   padding: var(--inset-surface);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-info-mark);
+  border: var(--border-width-hairline) solid var(--color-info-mark);
   border-top: none;
   border-radius: 0 0 var(--radius-regular) var(--radius-regular);
 `;

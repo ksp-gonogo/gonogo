@@ -67,8 +67,8 @@ const LockMark__Body = styled.span`
   color: var(--color-text-muted);
   font-size: var(--font-size-caption);
   line-height: var(--line-height-flush);
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
 `;
 

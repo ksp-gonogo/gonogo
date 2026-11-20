@@ -108,7 +108,7 @@ const WEIGHT_STYLES = {
     font-weight: 400;
   `,
   semibold: css`
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
   `,
 } as const;
 

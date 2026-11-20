@@ -596,7 +596,7 @@ export { useOverlay };
 const Backdrop = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: color-mix(in srgb, var(--color-shadow) 65%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -619,7 +619,7 @@ const OverlaySurface = styled(Box).attrs({
   height: min(640px, 80dvh);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  box-shadow: var(--shadow-overlay);
   overflow: hidden;
 `;
 
@@ -630,7 +630,7 @@ const SearchRow = styled.div`
   /* On the overlay gutter that ResultsHeader, ChipRow and ListItem below
      share, so the search text lines up with every band under it. */
   padding: var(--inset-overlay-band);
-  border-bottom: 1px solid var(--color-surface-raised);
+  border-bottom: var(--border-width-hairline) solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
 
@@ -661,7 +661,7 @@ const ResultsHeader = styled.div`
   gap: var(--gap-related);
   padding: var(--inset-overlay-heading);
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-faint);
   flex-shrink: 0;
@@ -673,7 +673,7 @@ const ChipRow = styled.div`
   gap: var(--gap-related);
   /* Same gutter column as the rows above and below; see ResultsHeader. */
   padding: var(--inset-overlay-chips);
-  border-bottom: 1px solid var(--color-surface-raised);
+  border-bottom: var(--border-width-hairline) solid var(--color-surface-raised);
   flex-shrink: 0;
 
   /* On touch the chips are 44px tall, so wrapped rows would take the screen from the results: one row that scrolls sideways instead. */
@@ -696,7 +696,7 @@ const ListRow = styled.div<{ $active?: boolean; $ticked?: boolean }>`
   display: flex;
   align-items: flex-start;
   background: ${(p) => (p.$active || p.$ticked ? "var(--color-surface-raised)" : "none")};
-  border-bottom: 1px solid var(--color-surface-panel);
+  border-bottom: var(--border-width-hairline) solid var(--color-surface-panel);
   /* The roving highlight is the keyboard cursor; mirror it with an inset
      accent rule so it reads as "selected" while DOM focus stays in the
      search box (combobox + aria-activedescendant pattern). */
@@ -775,7 +775,7 @@ const AddBar = styled.div`
   justify-content: flex-end;
   gap: var(--gap-control-row);
   padding: var(--inset-overlay-band);
-  border-top: 1px solid var(--color-surface-raised);
+  border-top: var(--border-width-hairline) solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
 
@@ -823,7 +823,7 @@ const ExtenderRow = styled.div`
 
 const ItemName = styled.span`
   font-size: var(--font-size-value);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 `;
 

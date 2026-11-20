@@ -464,7 +464,7 @@ const SentNotice = styled.div`
   font-size: var(--font-size-compact);
 
   code {
-    background: rgba(0, 0, 0, 0.2);
+    background: color-mix(in srgb, var(--color-shadow) 20%, transparent);
     padding: var(--inset-chip);
     border-radius: var(--radius-regular);
   }
@@ -480,7 +480,7 @@ const ScreenshotPreview = styled.div`
 const ScreenshotThumb = styled.img`
   max-width: 120px;
   max-height: 80px;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
 `;
 

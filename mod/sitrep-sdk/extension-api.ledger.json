@@ -41212,6 +41212,566 @@
         "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
       },
       {
+        "key": "sitrep-sdk . ThemeAlarmColors",
+        "note": "New optional foundation group or value ThemeAlarmColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeAlarmColors#arm?",
+        "note": "Optional arm value on ThemeAlarmColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeAlarmColors#fire?",
+        "note": "Optional fire value on ThemeAlarmColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeAlarmColors#notice?",
+        "note": "Optional notice value on ThemeAlarmColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeAlarmColors#offline?",
+        "note": "Optional offline value on ThemeAlarmColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeAlarmColors#overlay?",
+        "note": "Optional overlay value on ThemeAlarmColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeAlarmColors#set?",
+        "note": "Optional set value on ThemeAlarmColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeBorderWidth",
+        "note": "ThemeBorderWidth: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk . ThemeBorderWidth#hairline?",
+        "note": "ThemeBorderWidth.hairline: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeBorderWidth#strong?",
+        "note": "ThemeBorderWidth.strong: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#alarm?",
+        "note": "Optional alarm value on ThemeColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#data?",
+        "note": "Optional categorical colour list on a theme"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#diagram?",
+        "note": "Optional diagram value on ThemeColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#highlight?",
+        "note": "Optional highlight value on ThemeColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#imagery?",
+        "note": "Optional imagery group on ThemeColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#marker?",
+        "note": "Optional marker value on ThemeColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#palette?",
+        "note": "Optional palette value on ThemeColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#poll?",
+        "note": "Optional poll value on ThemeColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#scrim?",
+        "note": "Optional scrim colour on ThemeColors, the backing behind theme-coloured text, split from shadow"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#shadow?",
+        "note": "Optional shadow value on ThemeColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#status?",
+        "note": "Optional status colours of a theme, from which the palette steps derive"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#tag?",
+        "note": "Optional tag value on ThemeColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDensity",
+        "note": "ThemeDensity: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDensity#control?",
+        "note": "ThemeDensity.control: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDensity#panelGutter?",
+        "note": "ThemeDensity.panelGutter: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDensity#related?",
+        "note": "ThemeDensity.related: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDensity#screenGutter?",
+        "note": "ThemeDensity.screenGutter: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDensity#section?",
+        "note": "ThemeDensity.section: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDensity#surface?",
+        "note": "ThemeDensity.surface: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors",
+        "note": "New optional foundation group or value ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#atmosphereInert?",
+        "note": "Optional atmosphereInert value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#atmosphereOxygen?",
+        "note": "Optional atmosphereOxygen value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#danger?",
+        "note": "Optional danger value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#depthAbove?",
+        "note": "Optional depthAbove value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#depthBelow?",
+        "note": "Optional depthBelow value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#depthLevel?",
+        "note": "Optional depthLevel value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#dockingMisaligned?",
+        "note": "Optional dockingMisaligned value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#encounter?",
+        "note": "Optional encounter value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#flyby?",
+        "note": "Optional flyby value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#impact?",
+        "note": "Optional impact value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#orbitBurn?",
+        "note": "Optional orbitBurn value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#orbitRetro?",
+        "note": "Optional orbitRetro value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#power?",
+        "note": "Optional power value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeDiagramColors#signalLive?",
+        "note": "Optional signalLive value on ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeElevation",
+        "note": "ThemeElevation: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk . ThemeElevation#floating?",
+        "note": "ThemeElevation.floating: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeElevation#raised?",
+        "note": "ThemeElevation.raised: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeFloating",
+        "note": "ThemeFloating: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk . ThemeFloating#padding?",
+        "note": "ThemeFloating.padding: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeImageryColors",
+        "note": "New optional group: the marks drawn over map imagery"
+      },
+      {
+        "key": "sitrep-sdk . ThemeImageryColors#anomaly?",
+        "note": "Optional anomaly mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeImageryColors#contract?",
+        "note": "Optional contract mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeImageryColors#ksc?",
+        "note": "Optional ksc mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeImageryColors#launchSite?",
+        "note": "Optional launchSite mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeImageryColors#other?",
+        "note": "Optional other mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeMarkerColors",
+        "note": "New optional group: the navball marker colours"
+      },
+      {
+        "key": "sitrep-sdk . ThemeMarkerColors#maneuver?",
+        "note": "Optional maneuver value on ThemeMarkerColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeMarkerColors#normal?",
+        "note": "Optional normal value on ThemeMarkerColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeMarkerColors#prograde?",
+        "note": "Optional prograde value on ThemeMarkerColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeMarkerColors#radial?",
+        "note": "Optional radial value on ThemeMarkerColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeMarkerColors#target?",
+        "note": "Optional target value on ThemeMarkerColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeMotion",
+        "note": "ThemeMotion: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk . ThemeMotion#emphasis?",
+        "note": "ThemeMotion.emphasis: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeMotion#speed?",
+        "note": "ThemeMotion.speed: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeMotion#standard?",
+        "note": "ThemeMotion.standard: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette",
+        "note": "New optional group: the hues the status colours are built from"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#go1?",
+        "note": "Optional go1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#go2?",
+        "note": "Optional go2 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#go3?",
+        "note": "Optional go3 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#go4?",
+        "note": "Optional go4 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#info1?",
+        "note": "Optional info1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#nogo1?",
+        "note": "Optional nogo1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#nogo2?",
+        "note": "Optional nogo2 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#nogo3?",
+        "note": "Optional nogo3 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#onFill?",
+        "note": "Optional onFill step of ThemePalette, counted away from the text colour; replaces the lightness-numbered name before it was published"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#warn1?",
+        "note": "Optional warn1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#warn2?",
+        "note": "Optional warn2 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#warn3?",
+        "note": "Optional warn3 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePalette#warn4?",
+        "note": "Optional warn4 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk . ThemePollColors",
+        "note": "New optional foundation group or value ThemePollColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemePollColors#abort?",
+        "note": "Optional abort value on ThemePollColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemePollColors#go?",
+        "note": "Optional go value on ThemePollColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemePollColors#noGo?",
+        "note": "Optional noGo value on ThemePollColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemePollColors#none?",
+        "note": "Optional none value on ThemePollColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeRadius",
+        "note": "New optional group: the corner radii"
+      },
+      {
+        "key": "sitrep-sdk . ThemeRadius#banner?",
+        "note": "New: an optional theme member setting the ends of event banners"
+      },
+      {
+        "key": "sitrep-sdk . ThemeRadius#displayFrame?",
+        "note": "Optional displayFrame value on ThemeRadius"
+      },
+      {
+        "key": "sitrep-sdk . ThemeRadius#displayFrameAside?",
+        "note": "Optional displayFrameAside value on ThemeRadius"
+      },
+      {
+        "key": "sitrep-sdk . ThemeRadius#floating?",
+        "note": "Optional floating value on ThemeRadius"
+      },
+      {
+        "key": "sitrep-sdk . ThemeRadius#pill?",
+        "note": "Optional pill radius on ThemeRadius"
+      },
+      {
+        "key": "sitrep-sdk . ThemeRadius#regular?",
+        "note": "Optional regular value on ThemeRadius"
+      },
+      {
+        "key": "sitrep-sdk . ThemeShadow",
+        "note": "ThemeShadow: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk . ThemeShadow#blur",
+        "note": "ThemeShadow.blur: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeShadow#offset",
+        "note": "ThemeShadow.offset: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSizes",
+        "note": "New optional group: the fixed control sizes"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSizes#controlHeight?",
+        "note": "Optional controlHeight value on ThemeSizes"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSizes#fab?",
+        "note": "Optional fab value on ThemeSizes"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSpace",
+        "note": "New optional group: the spacing ladder"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSpace#\"10\"?",
+        "note": "Optional \"10\" value on ThemeSpace"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSpace#\"12\"?",
+        "note": "Optional \"12\" value on ThemeSpace"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSpace#\"16\"?",
+        "note": "Optional \"16\" value on ThemeSpace"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSpace#\"2\"?",
+        "note": "Optional \"2\" value on ThemeSpace"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSpace#\"24\"?",
+        "note": "Optional \"24\" value on ThemeSpace"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSpace#\"4\"?",
+        "note": "Optional \"4\" value on ThemeSpace"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSpace#\"6\"?",
+        "note": "Optional \"6\" value on ThemeSpace"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSpace#\"8\"?",
+        "note": "Optional \"8\" value on ThemeSpace"
+      },
+      {
+        "key": "sitrep-sdk . ThemeSpace#hair?",
+        "note": "Optional hair value on ThemeSpace"
+      },
+      {
+        "key": "sitrep-sdk . ThemeStatusColors",
+        "note": "One colour each for go, no-go, warn and info, from which the palette steps derive"
+      },
+      {
+        "key": "sitrep-sdk . ThemeStatusColors#go?",
+        "note": "Optional go colour of ThemeStatusColors, from which the go steps derive"
+      },
+      {
+        "key": "sitrep-sdk . ThemeStatusColors#info?",
+        "note": "Optional info colour of ThemeStatusColors, from which the info steps derive"
+      },
+      {
+        "key": "sitrep-sdk . ThemeStatusColors#nogo?",
+        "note": "Optional nogo colour of ThemeStatusColors, from which the nogo steps derive"
+      },
+      {
+        "key": "sitrep-sdk . ThemeStatusColors#warn?",
+        "note": "Optional warn colour of ThemeStatusColors, from which the warn steps derive"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors",
+        "note": "New optional group: the labelled-state chip colours"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#blueBg?",
+        "note": "Optional blueBg value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#blueBorder?",
+        "note": "Optional blueBorder value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#blueFg?",
+        "note": "Optional blueFg value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#cyanFg?",
+        "note": "Optional cyanFg value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#darkBrownBg?",
+        "note": "Optional darkBrownBg value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#darkBrownBorder?",
+        "note": "Optional darkBrownBorder value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#orangeFg?",
+        "note": "Optional orangeFg value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#purpleBg?",
+        "note": "Optional purpleBg value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#purpleBorder?",
+        "note": "Optional purpleBorder value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#purpleFg?",
+        "note": "Optional purpleFg value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#redFg?",
+        "note": "Optional redFg value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#yellowBg?",
+        "note": "Optional yellowBg value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#yellowBorder?",
+        "note": "Optional yellowBorder value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTagColors#yellowFg?",
+        "note": "Optional yellowFg value on ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTypography#iconSize?",
+        "note": "Optional iconSize value on ThemeTypography"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTypography#lineHeight?",
+        "note": "Optional lineHeight value on ThemeTypography"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTypography#microSize?",
+        "note": "New: the smallest text size, beside the size steps a theme already sets"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTypography#tracking?",
+        "note": "ThemeTypography.tracking: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTypography#weight?",
+        "note": "ThemeTypography.weight: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme#borderWidth?",
+        "note": "UiKitTheme.borderWidth: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme#density?",
+        "note": "UiKitTheme.density: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme#elevation?",
+        "note": "UiKitTheme.elevation: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme#floating?",
+        "note": "UiKitTheme.floating: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme#motion?",
+        "note": "UiKitTheme.motion: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme#radius?",
+        "note": "Optional radius value on UiKitTheme"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme#sizes?",
+        "note": "Optional sizes value on UiKitTheme"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme#space?",
+        "note": "Optional space value on UiKitTheme"
+      },
+      {
         "key": "sitrep-sdk . getModes",
         "note": "Every registered mode, for a test"
       },
@@ -41314,6 +41874,566 @@
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.replay\"",
         "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeAlarmColors",
+        "note": "New optional foundation group or value ~ThemeAlarmColors"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeAlarmColors#arm?",
+        "note": "New optional foundation group or value ~ThemeAlarmColors#arm?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeAlarmColors#fire?",
+        "note": "New optional foundation group or value ~ThemeAlarmColors#fire?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeAlarmColors#notice?",
+        "note": "New optional foundation group or value ~ThemeAlarmColors#notice?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeAlarmColors#offline?",
+        "note": "New optional foundation group or value ~ThemeAlarmColors#offline?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeAlarmColors#overlay?",
+        "note": "New optional foundation group or value ~ThemeAlarmColors#overlay?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeAlarmColors#set?",
+        "note": "New optional foundation group or value ~ThemeAlarmColors#set?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeBorderWidth",
+        "note": "ThemeBorderWidth: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeBorderWidth#hairline?",
+        "note": "ThemeBorderWidth.hairline: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeBorderWidth#strong?",
+        "note": "ThemeBorderWidth.strong: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#alarm?",
+        "note": "New optional foundation group or value ~ThemeColors#alarm?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#data?",
+        "note": "Optional categorical colour list on a theme"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#diagram?",
+        "note": "New optional foundation group or value ~ThemeColors#diagram?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#highlight?",
+        "note": "New optional foundation group or value ~ThemeColors#highlight?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#imagery?",
+        "note": "Optional imagery group on ThemeColors"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#marker?",
+        "note": "New optional foundation value ~ThemeColors#marker?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#palette?",
+        "note": "New optional foundation value ~ThemeColors#palette?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#poll?",
+        "note": "New optional foundation group or value ~ThemeColors#poll?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#scrim?",
+        "note": "Optional scrim colour on ThemeColors, the backing behind theme-coloured text, split from shadow"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#shadow?",
+        "note": "New optional foundation group or value ~ThemeColors#shadow?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#status?",
+        "note": "Optional status colours of a theme, from which the palette steps derive"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#tag?",
+        "note": "New optional foundation value ~ThemeColors#tag?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDensity",
+        "note": "ThemeDensity: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDensity#control?",
+        "note": "ThemeDensity.control: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDensity#panelGutter?",
+        "note": "ThemeDensity.panelGutter: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDensity#related?",
+        "note": "ThemeDensity.related: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDensity#screenGutter?",
+        "note": "ThemeDensity.screenGutter: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDensity#section?",
+        "note": "ThemeDensity.section: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDensity#surface?",
+        "note": "ThemeDensity.surface: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors",
+        "note": "New optional foundation group or value ~ThemeDiagramColors"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#atmosphereInert?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#atmosphereInert?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#atmosphereOxygen?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#atmosphereOxygen?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#danger?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#danger?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#depthAbove?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#depthAbove?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#depthBelow?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#depthBelow?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#depthLevel?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#depthLevel?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#dockingMisaligned?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#dockingMisaligned?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#encounter?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#encounter?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#flyby?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#flyby?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#impact?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#impact?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#orbitBurn?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#orbitBurn?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#orbitRetro?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#orbitRetro?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#power?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#power?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDiagramColors#signalLive?",
+        "note": "New optional foundation group or value ~ThemeDiagramColors#signalLive?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeElevation",
+        "note": "ThemeElevation: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeElevation#floating?",
+        "note": "ThemeElevation.floating: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeElevation#raised?",
+        "note": "ThemeElevation.raised: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeFloating",
+        "note": "ThemeFloating: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeFloating#padding?",
+        "note": "ThemeFloating.padding: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeImageryColors",
+        "note": "New optional group: the marks drawn over map imagery"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeImageryColors#anomaly?",
+        "note": "Optional anomaly mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeImageryColors#contract?",
+        "note": "Optional contract mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeImageryColors#ksc?",
+        "note": "Optional ksc mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeImageryColors#launchSite?",
+        "note": "Optional launchSite mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeImageryColors#other?",
+        "note": "Optional other mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeMarkerColors",
+        "note": "New optional foundation value ~ThemeMarkerColors"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeMarkerColors#maneuver?",
+        "note": "New optional foundation value ~ThemeMarkerColors#maneuver?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeMarkerColors#normal?",
+        "note": "New optional foundation value ~ThemeMarkerColors#normal?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeMarkerColors#prograde?",
+        "note": "New optional foundation value ~ThemeMarkerColors#prograde?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeMarkerColors#radial?",
+        "note": "New optional foundation value ~ThemeMarkerColors#radial?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeMarkerColors#target?",
+        "note": "New optional foundation value ~ThemeMarkerColors#target?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeMotion",
+        "note": "ThemeMotion: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeMotion#emphasis?",
+        "note": "ThemeMotion.emphasis: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeMotion#speed?",
+        "note": "ThemeMotion.speed: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeMotion#standard?",
+        "note": "ThemeMotion.standard: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette",
+        "note": "New optional foundation value ~ThemePalette"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#go1?",
+        "note": "Optional go1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#go2?",
+        "note": "Optional go2 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#go3?",
+        "note": "Optional go3 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#go4?",
+        "note": "Optional go4 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#info1?",
+        "note": "Optional info1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#nogo1?",
+        "note": "Optional nogo1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#nogo2?",
+        "note": "Optional nogo2 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#nogo3?",
+        "note": "Optional nogo3 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#onFill?",
+        "note": "Optional onFill step of ThemePalette, counted away from the text colour; replaces the lightness-numbered name before it was published"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#warn1?",
+        "note": "Optional warn1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#warn2?",
+        "note": "Optional warn2 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#warn3?",
+        "note": "Optional warn3 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePalette#warn4?",
+        "note": "Optional warn4 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePollColors",
+        "note": "New optional foundation group or value ~ThemePollColors"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePollColors#abort?",
+        "note": "New optional foundation group or value ~ThemePollColors#abort?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePollColors#go?",
+        "note": "New optional foundation group or value ~ThemePollColors#go?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePollColors#noGo?",
+        "note": "New optional foundation group or value ~ThemePollColors#noGo?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemePollColors#none?",
+        "note": "New optional foundation group or value ~ThemePollColors#none?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeRadius",
+        "note": "New optional foundation value ~ThemeRadius"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeRadius#banner?",
+        "note": "New: an optional theme member setting the ends of event banners"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeRadius#displayFrame?",
+        "note": "New optional foundation value ~ThemeRadius#displayFrame?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeRadius#displayFrameAside?",
+        "note": "New optional foundation value ~ThemeRadius#displayFrameAside?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeRadius#floating?",
+        "note": "New optional foundation value ~ThemeRadius#floating?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeRadius#pill?",
+        "note": "Optional pill radius on ThemeRadius"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeRadius#regular?",
+        "note": "New optional foundation value ~ThemeRadius#regular?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeShadow",
+        "note": "ThemeShadow: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeShadow#blur",
+        "note": "ThemeShadow.blur: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeShadow#offset",
+        "note": "ThemeShadow.offset: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSizes",
+        "note": "New optional foundation value ~ThemeSizes"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSizes#controlHeight?",
+        "note": "New optional foundation value ~ThemeSizes#controlHeight?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSizes#fab?",
+        "note": "New optional foundation value ~ThemeSizes#fab?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSpace",
+        "note": "New optional foundation value ~ThemeSpace"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSpace#\"10\"?",
+        "note": "New optional foundation value ~ThemeSpace#\"10\"?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSpace#\"12\"?",
+        "note": "New optional foundation value ~ThemeSpace#\"12\"?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSpace#\"16\"?",
+        "note": "New optional foundation value ~ThemeSpace#\"16\"?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSpace#\"2\"?",
+        "note": "New optional foundation value ~ThemeSpace#\"2\"?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSpace#\"24\"?",
+        "note": "New optional foundation value ~ThemeSpace#\"24\"?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSpace#\"4\"?",
+        "note": "New optional foundation value ~ThemeSpace#\"4\"?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSpace#\"6\"?",
+        "note": "New optional foundation value ~ThemeSpace#\"6\"?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSpace#\"8\"?",
+        "note": "New optional foundation value ~ThemeSpace#\"8\"?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeSpace#hair?",
+        "note": "New optional foundation value ~ThemeSpace#hair?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeStatusColors",
+        "note": "One colour each for go, no-go, warn and info, from which the palette steps derive"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeStatusColors#go?",
+        "note": "Optional go colour of ThemeStatusColors, from which the go steps derive"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeStatusColors#info?",
+        "note": "Optional info colour of ThemeStatusColors, from which the info steps derive"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeStatusColors#nogo?",
+        "note": "Optional nogo colour of ThemeStatusColors, from which the nogo steps derive"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeStatusColors#warn?",
+        "note": "Optional warn colour of ThemeStatusColors, from which the warn steps derive"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors",
+        "note": "New optional foundation value ~ThemeTagColors"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#blueBg?",
+        "note": "New optional foundation value ~ThemeTagColors#blueBg?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#blueBorder?",
+        "note": "New optional foundation value ~ThemeTagColors#blueBorder?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#blueFg?",
+        "note": "New optional foundation value ~ThemeTagColors#blueFg?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#cyanFg?",
+        "note": "New optional foundation value ~ThemeTagColors#cyanFg?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#darkBrownBg?",
+        "note": "New optional foundation value ~ThemeTagColors#darkBrownBg?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#darkBrownBorder?",
+        "note": "New optional foundation value ~ThemeTagColors#darkBrownBorder?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#orangeFg?",
+        "note": "New optional foundation value ~ThemeTagColors#orangeFg?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#purpleBg?",
+        "note": "New optional foundation value ~ThemeTagColors#purpleBg?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#purpleBorder?",
+        "note": "New optional foundation value ~ThemeTagColors#purpleBorder?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#purpleFg?",
+        "note": "New optional foundation value ~ThemeTagColors#purpleFg?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#redFg?",
+        "note": "New optional foundation value ~ThemeTagColors#redFg?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#yellowBg?",
+        "note": "New optional foundation value ~ThemeTagColors#yellowBg?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#yellowBorder?",
+        "note": "New optional foundation value ~ThemeTagColors#yellowBorder?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTagColors#yellowFg?",
+        "note": "New optional foundation value ~ThemeTagColors#yellowFg?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTypography#iconSize?",
+        "note": "New optional foundation value ~ThemeTypography#iconSize?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTypography#lineHeight?",
+        "note": "New optional foundation value ~ThemeTypography#lineHeight?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTypography#microSize?",
+        "note": "New: the smallest text size, beside the size steps a theme already sets"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTypography#tracking?",
+        "note": "ThemeTypography.tracking: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTypography#weight?",
+        "note": "ThemeTypography.weight: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme#borderWidth?",
+        "note": "UiKitTheme.borderWidth: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme#density?",
+        "note": "UiKitTheme.density: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme#elevation?",
+        "note": "UiKitTheme.elevation: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme#floating?",
+        "note": "UiKitTheme.floating: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme#motion?",
+        "note": "UiKitTheme.motion: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme#radius?",
+        "note": "New optional foundation value ~UiKitTheme#radius?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme#sizes?",
+        "note": "New optional foundation value ~UiKitTheme#sizes?"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme#space?",
+        "note": "New optional foundation value ~UiKitTheme#space?"
       },
       {
         "key": "sitrep-sdk ./spine ClaimObserverContext",
@@ -41438,6 +42558,10 @@
       {
         "key": "sitrep-sdk ./spine ~PlanStepKind#needsDv?",
         "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./testing harnessThemeFull",
+        "note": "New: the whole generated test theme, beside harnessTheme which keeps its original shape"
       },
       {
         "key": "sitrep-sdk ./testing ~ContributionRegistry#\"flight-plan.steps\"",
@@ -41566,6 +42690,566 @@
       {
         "key": "ui-kit . SlotRegistry#\"mode-sections.replay\"",
         "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
+        "key": "ui-kit . ThemeAlarmColors",
+        "note": "New optional foundation group or value ThemeAlarmColors"
+      },
+      {
+        "key": "ui-kit . ThemeAlarmColors#arm?",
+        "note": "Optional arm value on ThemeAlarmColors"
+      },
+      {
+        "key": "ui-kit . ThemeAlarmColors#fire?",
+        "note": "Optional fire value on ThemeAlarmColors"
+      },
+      {
+        "key": "ui-kit . ThemeAlarmColors#notice?",
+        "note": "Optional notice value on ThemeAlarmColors"
+      },
+      {
+        "key": "ui-kit . ThemeAlarmColors#offline?",
+        "note": "Optional offline value on ThemeAlarmColors"
+      },
+      {
+        "key": "ui-kit . ThemeAlarmColors#overlay?",
+        "note": "Optional overlay value on ThemeAlarmColors"
+      },
+      {
+        "key": "ui-kit . ThemeAlarmColors#set?",
+        "note": "Optional set value on ThemeAlarmColors"
+      },
+      {
+        "key": "ui-kit . ThemeBorderWidth",
+        "note": "ThemeBorderWidth: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "ui-kit . ThemeBorderWidth#hairline?",
+        "note": "ThemeBorderWidth.hairline: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeBorderWidth#strong?",
+        "note": "ThemeBorderWidth.strong: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeColors#alarm?",
+        "note": "Optional alarm value on ThemeColors"
+      },
+      {
+        "key": "ui-kit . ThemeColors#data?",
+        "note": "Optional categorical colour list on a theme"
+      },
+      {
+        "key": "ui-kit . ThemeColors#diagram?",
+        "note": "Optional diagram value on ThemeColors"
+      },
+      {
+        "key": "ui-kit . ThemeColors#highlight?",
+        "note": "Optional highlight value on ThemeColors"
+      },
+      {
+        "key": "ui-kit . ThemeColors#imagery?",
+        "note": "Optional imagery group on ThemeColors"
+      },
+      {
+        "key": "ui-kit . ThemeColors#marker?",
+        "note": "Optional marker value on ThemeColors"
+      },
+      {
+        "key": "ui-kit . ThemeColors#palette?",
+        "note": "Optional palette value on ThemeColors"
+      },
+      {
+        "key": "ui-kit . ThemeColors#poll?",
+        "note": "Optional poll value on ThemeColors"
+      },
+      {
+        "key": "ui-kit . ThemeColors#scrim?",
+        "note": "Optional scrim colour on ThemeColors, the backing behind theme-coloured text, split from shadow"
+      },
+      {
+        "key": "ui-kit . ThemeColors#shadow?",
+        "note": "Optional shadow value on ThemeColors"
+      },
+      {
+        "key": "ui-kit . ThemeColors#status?",
+        "note": "Optional status colours of a theme, from which the palette steps derive"
+      },
+      {
+        "key": "ui-kit . ThemeColors#tag?",
+        "note": "Optional tag value on ThemeColors"
+      },
+      {
+        "key": "ui-kit . ThemeDensity",
+        "note": "ThemeDensity: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "ui-kit . ThemeDensity#control?",
+        "note": "ThemeDensity.control: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeDensity#panelGutter?",
+        "note": "ThemeDensity.panelGutter: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeDensity#related?",
+        "note": "ThemeDensity.related: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeDensity#screenGutter?",
+        "note": "ThemeDensity.screenGutter: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeDensity#section?",
+        "note": "ThemeDensity.section: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeDensity#surface?",
+        "note": "ThemeDensity.surface: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors",
+        "note": "New optional foundation group or value ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#atmosphereInert?",
+        "note": "Optional atmosphereInert value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#atmosphereOxygen?",
+        "note": "Optional atmosphereOxygen value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#danger?",
+        "note": "Optional danger value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#depthAbove?",
+        "note": "Optional depthAbove value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#depthBelow?",
+        "note": "Optional depthBelow value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#depthLevel?",
+        "note": "Optional depthLevel value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#dockingMisaligned?",
+        "note": "Optional dockingMisaligned value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#encounter?",
+        "note": "Optional encounter value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#flyby?",
+        "note": "Optional flyby value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#impact?",
+        "note": "Optional impact value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#orbitBurn?",
+        "note": "Optional orbitBurn value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#orbitRetro?",
+        "note": "Optional orbitRetro value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#power?",
+        "note": "Optional power value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeDiagramColors#signalLive?",
+        "note": "Optional signalLive value on ThemeDiagramColors"
+      },
+      {
+        "key": "ui-kit . ThemeElevation",
+        "note": "ThemeElevation: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "ui-kit . ThemeElevation#floating?",
+        "note": "ThemeElevation.floating: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeElevation#raised?",
+        "note": "ThemeElevation.raised: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeFloating",
+        "note": "ThemeFloating: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "ui-kit . ThemeFloating#padding?",
+        "note": "ThemeFloating.padding: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeImageryColors",
+        "note": "New optional group: the marks drawn over map imagery"
+      },
+      {
+        "key": "ui-kit . ThemeImageryColors#anomaly?",
+        "note": "Optional anomaly mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "ui-kit . ThemeImageryColors#contract?",
+        "note": "Optional contract mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "ui-kit . ThemeImageryColors#ksc?",
+        "note": "Optional ksc mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "ui-kit . ThemeImageryColors#launchSite?",
+        "note": "Optional launchSite mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "ui-kit . ThemeImageryColors#other?",
+        "note": "Optional other mark colour on ThemeImageryColors"
+      },
+      {
+        "key": "ui-kit . ThemeMarkerColors",
+        "note": "New optional group: the navball marker colours"
+      },
+      {
+        "key": "ui-kit . ThemeMarkerColors#maneuver?",
+        "note": "Optional maneuver value on ThemeMarkerColors"
+      },
+      {
+        "key": "ui-kit . ThemeMarkerColors#normal?",
+        "note": "Optional normal value on ThemeMarkerColors"
+      },
+      {
+        "key": "ui-kit . ThemeMarkerColors#prograde?",
+        "note": "Optional prograde value on ThemeMarkerColors"
+      },
+      {
+        "key": "ui-kit . ThemeMarkerColors#radial?",
+        "note": "Optional radial value on ThemeMarkerColors"
+      },
+      {
+        "key": "ui-kit . ThemeMarkerColors#target?",
+        "note": "Optional target value on ThemeMarkerColors"
+      },
+      {
+        "key": "ui-kit . ThemeMotion",
+        "note": "ThemeMotion: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "ui-kit . ThemeMotion#emphasis?",
+        "note": "ThemeMotion.emphasis: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeMotion#speed?",
+        "note": "ThemeMotion.speed: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeMotion#standard?",
+        "note": "ThemeMotion.standard: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemePalette",
+        "note": "New optional group: the hues the status colours are built from"
+      },
+      {
+        "key": "ui-kit . ThemePalette#go1?",
+        "note": "Optional go1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePalette#go2?",
+        "note": "Optional go2 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePalette#go3?",
+        "note": "Optional go3 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePalette#go4?",
+        "note": "Optional go4 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePalette#info1?",
+        "note": "Optional info1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePalette#nogo1?",
+        "note": "Optional nogo1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePalette#nogo2?",
+        "note": "Optional nogo2 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePalette#nogo3?",
+        "note": "Optional nogo3 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePalette#onFill?",
+        "note": "Optional onFill step of ThemePalette, counted away from the text colour; replaces the lightness-numbered name before it was published"
+      },
+      {
+        "key": "ui-kit . ThemePalette#warn1?",
+        "note": "Optional warn1 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePalette#warn2?",
+        "note": "Optional warn2 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePalette#warn3?",
+        "note": "Optional warn3 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePalette#warn4?",
+        "note": "Optional warn4 step of ThemePalette, counted away from the text colour"
+      },
+      {
+        "key": "ui-kit . ThemePollColors",
+        "note": "New optional foundation group or value ThemePollColors"
+      },
+      {
+        "key": "ui-kit . ThemePollColors#abort?",
+        "note": "Optional abort value on ThemePollColors"
+      },
+      {
+        "key": "ui-kit . ThemePollColors#go?",
+        "note": "Optional go value on ThemePollColors"
+      },
+      {
+        "key": "ui-kit . ThemePollColors#noGo?",
+        "note": "Optional noGo value on ThemePollColors"
+      },
+      {
+        "key": "ui-kit . ThemePollColors#none?",
+        "note": "Optional none value on ThemePollColors"
+      },
+      {
+        "key": "ui-kit . ThemeRadius",
+        "note": "New optional group: the corner radii"
+      },
+      {
+        "key": "ui-kit . ThemeRadius#banner?",
+        "note": "New: an optional theme member setting the ends of event banners"
+      },
+      {
+        "key": "ui-kit . ThemeRadius#displayFrame?",
+        "note": "Optional displayFrame value on ThemeRadius"
+      },
+      {
+        "key": "ui-kit . ThemeRadius#displayFrameAside?",
+        "note": "Optional displayFrameAside value on ThemeRadius"
+      },
+      {
+        "key": "ui-kit . ThemeRadius#floating?",
+        "note": "Optional floating value on ThemeRadius"
+      },
+      {
+        "key": "ui-kit . ThemeRadius#pill?",
+        "note": "Optional pill radius on ThemeRadius"
+      },
+      {
+        "key": "ui-kit . ThemeRadius#regular?",
+        "note": "Optional regular value on ThemeRadius"
+      },
+      {
+        "key": "ui-kit . ThemeShadow",
+        "note": "ThemeShadow: a new optional theme type; no existing theme changes"
+      },
+      {
+        "key": "ui-kit . ThemeShadow#blur",
+        "note": "ThemeShadow.blur: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeShadow#offset",
+        "note": "ThemeShadow.offset: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeSizes",
+        "note": "New optional group: the fixed control sizes"
+      },
+      {
+        "key": "ui-kit . ThemeSizes#controlHeight?",
+        "note": "Optional controlHeight value on ThemeSizes"
+      },
+      {
+        "key": "ui-kit . ThemeSizes#fab?",
+        "note": "Optional fab value on ThemeSizes"
+      },
+      {
+        "key": "ui-kit . ThemeSpace",
+        "note": "New optional group: the spacing ladder"
+      },
+      {
+        "key": "ui-kit . ThemeSpace#\"10\"?",
+        "note": "Optional \"10\" value on ThemeSpace"
+      },
+      {
+        "key": "ui-kit . ThemeSpace#\"12\"?",
+        "note": "Optional \"12\" value on ThemeSpace"
+      },
+      {
+        "key": "ui-kit . ThemeSpace#\"16\"?",
+        "note": "Optional \"16\" value on ThemeSpace"
+      },
+      {
+        "key": "ui-kit . ThemeSpace#\"2\"?",
+        "note": "Optional \"2\" value on ThemeSpace"
+      },
+      {
+        "key": "ui-kit . ThemeSpace#\"24\"?",
+        "note": "Optional \"24\" value on ThemeSpace"
+      },
+      {
+        "key": "ui-kit . ThemeSpace#\"4\"?",
+        "note": "Optional \"4\" value on ThemeSpace"
+      },
+      {
+        "key": "ui-kit . ThemeSpace#\"6\"?",
+        "note": "Optional \"6\" value on ThemeSpace"
+      },
+      {
+        "key": "ui-kit . ThemeSpace#\"8\"?",
+        "note": "Optional \"8\" value on ThemeSpace"
+      },
+      {
+        "key": "ui-kit . ThemeSpace#hair?",
+        "note": "Optional hair value on ThemeSpace"
+      },
+      {
+        "key": "ui-kit . ThemeStatusColors",
+        "note": "One colour each for go, no-go, warn and info, from which the palette steps derive"
+      },
+      {
+        "key": "ui-kit . ThemeStatusColors#go?",
+        "note": "Optional go colour of ThemeStatusColors, from which the go steps derive"
+      },
+      {
+        "key": "ui-kit . ThemeStatusColors#info?",
+        "note": "Optional info colour of ThemeStatusColors, from which the info steps derive"
+      },
+      {
+        "key": "ui-kit . ThemeStatusColors#nogo?",
+        "note": "Optional nogo colour of ThemeStatusColors, from which the nogo steps derive"
+      },
+      {
+        "key": "ui-kit . ThemeStatusColors#warn?",
+        "note": "Optional warn colour of ThemeStatusColors, from which the warn steps derive"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors",
+        "note": "New optional group: the labelled-state chip colours"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#blueBg?",
+        "note": "Optional blueBg value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#blueBorder?",
+        "note": "Optional blueBorder value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#blueFg?",
+        "note": "Optional blueFg value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#cyanFg?",
+        "note": "Optional cyanFg value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#darkBrownBg?",
+        "note": "Optional darkBrownBg value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#darkBrownBorder?",
+        "note": "Optional darkBrownBorder value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#orangeFg?",
+        "note": "Optional orangeFg value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#purpleBg?",
+        "note": "Optional purpleBg value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#purpleBorder?",
+        "note": "Optional purpleBorder value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#purpleFg?",
+        "note": "Optional purpleFg value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#redFg?",
+        "note": "Optional redFg value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#yellowBg?",
+        "note": "Optional yellowBg value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#yellowBorder?",
+        "note": "Optional yellowBorder value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTagColors#yellowFg?",
+        "note": "Optional yellowFg value on ThemeTagColors"
+      },
+      {
+        "key": "ui-kit . ThemeTypography#iconSize?",
+        "note": "Optional iconSize value on ThemeTypography"
+      },
+      {
+        "key": "ui-kit . ThemeTypography#lineHeight?",
+        "note": "Optional lineHeight value on ThemeTypography"
+      },
+      {
+        "key": "ui-kit . ThemeTypography#microSize?",
+        "note": "New: the smallest text size, beside the size steps a theme already sets"
+      },
+      {
+        "key": "ui-kit . ThemeTypography#tracking?",
+        "note": "ThemeTypography.tracking: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . ThemeTypography#weight?",
+        "note": "ThemeTypography.weight: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . UiKitTheme#borderWidth?",
+        "note": "UiKitTheme.borderWidth: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . UiKitTheme#density?",
+        "note": "UiKitTheme.density: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . UiKitTheme#elevation?",
+        "note": "UiKitTheme.elevation: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . UiKitTheme#floating?",
+        "note": "UiKitTheme.floating: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . UiKitTheme#motion?",
+        "note": "UiKitTheme.motion: a new optional theme member; a theme that leaves it out keeps the default"
+      },
+      {
+        "key": "ui-kit . UiKitTheme#radius?",
+        "note": "Optional radius value on UiKitTheme"
+      },
+      {
+        "key": "ui-kit . UiKitTheme#sizes?",
+        "note": "Optional sizes value on UiKitTheme"
+      },
+      {
+        "key": "ui-kit . UiKitTheme#space?",
+        "note": "Optional space value on UiKitTheme"
       }
     ],
     "recorded": [

@@ -14,8 +14,8 @@
 // live in `tokens.css`, which no test loads. So a test asserts on
 // `color: var(--color-text-primary)`, exactly as the app renders it.
 //
-// No spacing or corner scale: the kit resolves a size prop against its own,
-// so those need no provider.
+// The foundation groups beyond colour and type (radius, space, sizes) are here
+// too, as `var(--...)` handles.
 
 export const GENERATED_TEST_THEME = {
   /** Colour roles as `var(--color-...)` references: text, surfaces, borders, the accent and the focus ring. */
@@ -42,6 +42,110 @@ export const GENERATED_TEST_THEME = {
       bg: "var(--color-accent-bg)",
     },
     focus: "var(--color-focus)",
+    palette: {
+      go1: "var(--status-go-1)",
+      go2: "var(--status-go-2)",
+      go3: "var(--status-go-3)",
+      go4: "var(--status-go-4)",
+      nogo1: "var(--status-nogo-1)",
+      nogo2: "var(--status-nogo-2)",
+      nogo3: "var(--status-nogo-3)",
+      warn1: "var(--status-warn-1)",
+      warn2: "var(--status-warn-2)",
+      warn3: "var(--status-warn-3)",
+      warn4: "var(--status-warn-4)",
+      info1: "var(--status-info-1)",
+      onFill: "var(--status-on-fill)",
+    },
+    tag: {
+      blueFg: "var(--color-tag-blue-fg)",
+      blueBg: "var(--color-tag-blue-bg)",
+      blueBorder: "var(--color-tag-blue-border)",
+      purpleFg: "var(--color-tag-purple-fg)",
+      purpleBg: "var(--color-tag-purple-bg)",
+      purpleBorder: "var(--color-tag-purple-border)",
+      yellowFg: "var(--color-tag-yellow-fg)",
+      yellowBg: "var(--color-tag-yellow-bg)",
+      yellowBorder: "var(--color-tag-yellow-border)",
+      darkBrownBg: "var(--color-tag-dark-brown-bg)",
+      darkBrownBorder: "var(--color-tag-dark-brown-border)",
+      cyanFg: "var(--color-tag-cyan-fg)",
+      orangeFg: "var(--color-tag-orange-fg)",
+      redFg: "var(--color-tag-red-fg)",
+    },
+    marker: {
+      prograde: "var(--color-marker-prograde)",
+      normal: "var(--color-marker-normal)",
+      radial: "var(--color-marker-radial)",
+      maneuver: "var(--color-marker-maneuver)",
+      target: "var(--color-marker-target)",
+    },
+    shadow: "var(--color-shadow)",
+    scrim: "var(--color-scrim)",
+    imagery: {
+      ksc: "var(--color-imagery-ksc)",
+      launchSite: "var(--color-imagery-launch-site)",
+      contract: "var(--color-imagery-contract)",
+      anomaly: "var(--color-imagery-anomaly)",
+      other: "var(--color-imagery-other)",
+    },
+    highlight: "var(--color-highlight)",
+    alarm: {
+      set: "var(--color-alarm-set)",
+      arm: "var(--color-alarm-arm)",
+      fire: "var(--color-alarm-fire)",
+      notice: "var(--color-alarm-notice)",
+      offline: "var(--color-alarm-offline)",
+      overlay: "var(--color-alarm-overlay)",
+    },
+    poll: {
+      go: "var(--color-poll-go)",
+      noGo: "var(--color-poll-no-go)",
+      abort: "var(--color-poll-abort)",
+      none: "var(--color-poll-none)",
+    },
+    diagram: {
+      orbitBurn: "var(--color-diagram-orbit-burn)",
+      orbitRetro: "var(--color-diagram-orbit-retro)",
+      atmosphereOxygen: "var(--color-diagram-atmosphere-oxygen)",
+      atmosphereInert: "var(--color-diagram-atmosphere-inert)",
+      encounter: "var(--color-diagram-encounter)",
+      flyby: "var(--color-diagram-flyby)",
+      impact: "var(--color-diagram-impact)",
+      depthAbove: "var(--color-diagram-depth-above)",
+      depthLevel: "var(--color-diagram-depth-level)",
+      depthBelow: "var(--color-diagram-depth-below)",
+      dockingMisaligned: "var(--color-diagram-docking-misaligned)",
+      signalLive: "var(--color-diagram-signal-live)",
+      danger: "var(--color-diagram-danger)",
+      power: "var(--color-diagram-power)",
+    },
+    data: [
+      "var(--color-data-1)",
+      "var(--color-data-2)",
+      "var(--color-data-3)",
+      "var(--color-data-4)",
+      "var(--color-data-5)",
+      "var(--color-data-6)",
+      "var(--color-data-7)",
+      "var(--color-data-8)",
+      "var(--color-data-9)",
+      "var(--color-data-10)",
+      "var(--color-data-11)",
+      "var(--color-data-12)",
+      "var(--color-data-13)",
+      "var(--color-data-14)",
+      "var(--color-data-15)",
+      "var(--color-data-16)",
+      "var(--color-data-17)",
+      "var(--color-data-18)",
+      "var(--color-data-19)",
+      "var(--color-data-20)",
+      "var(--color-data-21)",
+      "var(--color-data-22)",
+      "var(--color-data-23)",
+      "var(--color-data-24)",
+    ],
   },
   /** The monospace family, font sizes as `var(--font-size-...)` references, weights as numbers and letter spacings in `em`. */
   typography: {
@@ -54,5 +158,71 @@ export const GENERATED_TEST_THEME = {
       base: "var(--font-size-base)",
       lg: "var(--font-size-lg)",
     },
+    microSize: "var(--font-size-2xs)",
+    lineHeight: {
+      flush: "var(--line-height-flush)",
+      tight: "var(--line-height-tight)",
+      body: "var(--line-height-body)",
+      prose: "var(--line-height-prose)",
+    },
+    weight: {
+      semibold: "var(--font-weight-semibold)",
+      bold: "var(--font-weight-bold)",
+    },
+    iconSize: {
+      control: "var(--icon-size-control)",
+      standalone: "var(--icon-size-standalone)",
+    },
+  },
+  /** The corner radii as `var(--radius-...)` references. */
+  radius: {
+    regular: "var(--radius-regular)",
+    floating: "var(--radius-floating)",
+    displayFrame: "var(--radius-display-frame)",
+    displayFrameAside: "var(--radius-display-frame-aside)",
+    pill: "var(--radius-pill)",
+    banner: "var(--radius-banner)",
+  },
+  /** The spacing ladder as `var(--space-...)` references. */
+  space: {
+    "2": "var(--space-2)",
+    "4": "var(--space-4)",
+    "6": "var(--space-6)",
+    "8": "var(--space-8)",
+    "10": "var(--space-10)",
+    "12": "var(--space-12)",
+    "16": "var(--space-16)",
+    "24": "var(--space-24)",
+    hair: "var(--space-hair)",
+  },
+  /** The fixed control sizes as `var(--...)` references. */
+  sizes: {
+    controlHeight: "var(--control-height)",
+    fab: "var(--fab-size)",
+  },
+  density: {
+    related: {
+      comfortable: "var(--gap-related-comfortable)",
+      compact: "var(--gap-related-compact)",
+      dense: "var(--gap-related-dense)",
+      packed: "var(--gap-related-packed)",
+    },
+    section: {
+      comfortable: "var(--gap-section-comfortable)",
+      compact: "var(--gap-section-compact)",
+    },
+    panelGutter: "var(--gutter-panel)",
+    screenGutter: "var(--gutter-screen)",
+  },
+  floating: {
+    padding: "var(--inset-floating)",
+  },
+  borderWidth: {
+    hairline: "var(--border-width-hairline)",
+    strong: "var(--border-width-strong)",
+  },
+  motion: {
+    standard: "var(--ease-standard)",
+    emphasis: "var(--ease-emphasis)",
   },
 } as const;

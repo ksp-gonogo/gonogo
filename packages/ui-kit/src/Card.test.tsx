@@ -147,7 +147,9 @@ describe("Card", () => {
       </Card>,
     );
     const css = injectedCss();
-    expect(css).toContain("border-left:2px solid var(--color-nogo-mark);");
+    expect(css).toContain(
+      "border-left:var(--border-width-strong) solid var(--color-nogo-mark);",
+    );
     expect(css).toContain("::before{");
     expect(css).toContain("background:#654321;");
   });
@@ -159,7 +161,7 @@ describe("Card", () => {
       </Card>,
     );
     expect(injectedCss()).toContain(
-      "border-left:2px solid var(--color-nogo-mark);",
+      "border-left:var(--border-width-strong) solid var(--color-nogo-mark);",
     );
   });
 });

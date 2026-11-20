@@ -1,5 +1,8 @@
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
-import { harnessTheme, StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  harnessThemeFull,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 import { UplinkReadinessStep } from "../../src/firstRun/steps/UplinkReadinessStep";
@@ -157,7 +160,7 @@ async function renderScene(scene: Scene): Promise<void> {
   root = createRoot(host);
   if (scene.view === "prompt") {
     root.render(
-      <ThemeProvider theme={harnessTheme}>
+      <ThemeProvider theme={harnessThemeFull}>
         {asked.length > 0 ? (
           <FirstLoadPage uplinks={asked} onDone={() => {}} />
         ) : (
@@ -172,7 +175,7 @@ async function renderScene(scene: Scene): Promise<void> {
   const transport = new StubTransport();
   client = new TelemetryClient(transport);
   root.render(
-    <ThemeProvider theme={harnessTheme}>
+    <ThemeProvider theme={harnessThemeFull}>
       <TelemetryProvider client={client}>
         <div style={{ padding: 16 }}>
           <UplinkReadinessStep />

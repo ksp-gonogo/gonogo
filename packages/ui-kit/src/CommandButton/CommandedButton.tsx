@@ -794,7 +794,7 @@ const CommandButton__Body = styled(Button__Body)<{
   $blocked: boolean;
   $fit: boolean;
 }>`
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 
   /* Shrinks below its word so the word can be measured and give way to the icon. */
   ${({ $fit }) => ($fit ? "min-width: 0;" : "")}

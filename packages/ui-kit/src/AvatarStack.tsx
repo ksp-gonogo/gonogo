@@ -171,13 +171,13 @@ const AvatarStack__Face = styled.span<{ $tone: Tone | undefined }>`
   block-size: var(--avatar-size);
   margin: 0;
   padding: 0;
-  border: 1px solid ${({ $tone }) => TONE_MARK[$tone ?? "neutral"]};
+  border: var(--border-width-hairline) solid ${({ $tone }) => TONE_MARK[$tone ?? "neutral"]};
   border-radius: var(--radius-circle);
   background: var(--color-surface-raised);
   color: ${({ $tone }) => TONE_TEXT[$tone ?? "neutral"]};
   font: inherit;
   font-size: var(--font-size-caption);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-flush);
   white-space: nowrap;
   /* Each avatar overlaps the one before it, which stays on top. */

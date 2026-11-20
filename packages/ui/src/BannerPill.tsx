@@ -104,12 +104,12 @@ const FixedPill = styled.div<{
   /* --inset-pill, not --inset-control: this pill is never pressable, so it must not follow the touch-target token. */
   gap: var(--gap-pill);
   padding: var(--inset-pill);
-  background: rgba(0, 0, 0, 0.82);
-  border: 1px solid ${(p) => p.$accent};
-  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-scrim) 82%, transparent);
+  border: var(--border-width-hairline) solid ${(p) => p.$accent};
+  border-radius: var(--radius-banner);
   color: ${(p) => p.$accent};
   font-size: var(--font-size-compact);
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   pointer-events: ${(p) => (p.$interactive ? "auto" : "none")};
   ${(p) => (p.$glow ? css`box-shadow: ${p.$glow};` : "")}
 `;
@@ -125,12 +125,12 @@ const InlinePill = styled.div<{
   /* Pressable when given onClick, and a tier above --inset-control so a dismissable banner is a bigger target. */
   gap: var(--gap-pill);
   padding: var(--inset-control-prominent);
-  background: rgba(0, 0, 0, 0.88);
-  border: 1px solid ${(p) => p.$accent};
-  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-scrim) 88%, transparent);
+  border: var(--border-width-hairline) solid ${(p) => p.$accent};
+  border-radius: var(--radius-banner);
   color: ${(p) => p.$accent};
   font-size: var(--font-size-compact);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   font-family: inherit;
   max-width: 100%;
   cursor: ${(p) => (p.$clickable ? "pointer" : "default")};

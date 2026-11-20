@@ -22,36 +22,36 @@ interface PoiKindStyle {
 }
 
 const KSC_STYLE: PoiKindStyle = {
-  background: "var(--color-text-primary)",
-  border: "var(--color-text-primary)",
+  background: "var(--color-imagery-ksc)",
+  border: "var(--color-imagery-ksc)",
   borderStyle: "solid",
   glyph: "dish",
 };
 const LAUNCH_SITE_STYLE: PoiKindStyle = {
-  background: "var(--color-text-muted)",
-  border: "var(--color-text-muted)",
+  background: "var(--color-imagery-launch-site)",
+  border: "var(--color-imagery-launch-site)",
   borderStyle: "solid",
   glyph: "dish",
 };
 const CONTRACT_ACTIVE_STYLE: PoiKindStyle = {
   background: "transparent",
-  border: "var(--color-tag-yellow-fg)",
+  border: "var(--color-imagery-contract)",
   borderStyle: "solid",
 };
 const CONTRACT_AVAILABLE_STYLE: PoiKindStyle = {
   background: "transparent",
-  border: "var(--color-tag-yellow-fg)",
+  border: "var(--color-imagery-contract)",
   borderStyle: "dashed",
 };
 const ANOMALY_STYLE: PoiKindStyle = {
-  background: "var(--color-tag-cyan-fg)",
-  border: "var(--color-tag-cyan-fg)",
+  background: "var(--color-imagery-anomaly)",
+  border: "var(--color-imagery-anomaly)",
   borderStyle: "solid",
 };
 // Neutral fallback so a third-party provider's novel `kind` still renders.
 const DEFAULT_STYLE: PoiKindStyle = {
-  background: "var(--color-text-faint)",
-  border: "var(--color-text-faint)",
+  background: "var(--color-imagery-other)",
+  border: "var(--color-imagery-other)",
   borderStyle: "solid",
 };
 
@@ -127,7 +127,7 @@ export const PoiMarkerButton = forwardRef<
           : raised
             ? "scale(1.25)"
             : undefined,
-        transition: "transform var(--duration-fast)",
+        transition: "transform var(--duration-fast) var(--ease-standard)",
         ...style,
       }}
       onPointerEnter={(event) => {
@@ -244,7 +244,7 @@ const POI_MAP_LABEL_STYLE: CSSProperties = {
   whiteSpace: "nowrap",
   pointerEvents: "none",
   fontSize: "var(--font-size-caption)",
-  color: "var(--color-tag-yellow-fg)",
+  color: "var(--color-imagery-contract)",
 };
 
 export const PoiHoverCard = forwardRef<
@@ -263,7 +263,7 @@ const POI_HOVER_CARD_STYLE: CSSProperties = {
   maxWidth: 240,
   padding: "var(--inset-surface)",
   borderRadius: "var(--radius-regular)",
-  border: "1px solid var(--color-border-strong)",
+  border: "var(--border-width-hairline) solid var(--color-border-strong)",
   background: "var(--color-surface-raised)",
   color: "var(--color-text-primary)",
   fontSize: "var(--font-size-compact)",
@@ -276,7 +276,7 @@ export function PoiHoverLabel({
 }
 
 const POI_HOVER_LABEL_STYLE: CSSProperties = {
-  fontWeight: 600,
+  fontWeight: "var(--font-weight-semibold)",
   marginBottom: "var(--gap-caption)",
 };
 

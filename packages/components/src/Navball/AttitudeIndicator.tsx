@@ -239,7 +239,7 @@ const WRAP: CSSProperties = {
 const HEADING_STRIP: CSSProperties = {
   position: "relative",
   height: "22px",
-  border: "1px solid var(--color-border-subtle)",
+  border: "var(--border-width-hairline) solid var(--color-border-subtle)",
   background: "var(--color-surface-app)",
   overflow: "hidden",
 };
@@ -248,7 +248,7 @@ const HEADING_TICKER: CSSProperties = {
   position: "absolute",
   inset: 0,
   // Off the motion scale: an 80ms chase of live heading must not move when the UI motion tokens are retuned.
-  transition: "transform 80ms linear",
+  transition: "transform var(--duration-instant) var(--ease-linear)",
 };
 
 const HEADING_TICK: CSSProperties = {
@@ -289,7 +289,7 @@ const CELL: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  border: "1px solid var(--color-border-subtle)",
+  border: "var(--border-width-hairline) solid var(--color-border-subtle)",
   padding: "var(--inset-line)",
 };
 
@@ -297,12 +297,12 @@ const CELL: CSSProperties = {
 const LAB: CSSProperties = {
   fontSize: "9px",
   color: "var(--color-text-faint)",
-  letterSpacing: "0.12em",
+  letterSpacing: "calc(0.12em * var(--tracking-scale))",
 };
 
 const VAL: CSSProperties = {
   fontSize: "14px",
-  fontWeight: 600,
+  fontWeight: "var(--font-weight-semibold)",
   color: "var(--color-text-primary)",
   fontVariantNumeric: "tabular-nums",
 };

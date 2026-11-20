@@ -83,11 +83,11 @@ const FileInputButton = styled.label<{ $disabled: boolean }>`
   align-items: center;
   justify-content: center;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   padding: var(--inset-control);
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};

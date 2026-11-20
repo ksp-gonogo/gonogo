@@ -26,7 +26,7 @@ export const RowActions = styled.div`
 export const DangerButton = styled.button`
   background: var(--color-nogo-muted);
   color: var(--color-nogo-text);
-  border: 1px solid var(--color-nogo-muted);
+  border: var(--border-width-hairline) solid var(--color-nogo-muted);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   font-size: var(--font-size-compact);

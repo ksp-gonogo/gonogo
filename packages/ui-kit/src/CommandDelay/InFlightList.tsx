@@ -964,16 +964,16 @@ const InFlightQueue__Sq = styled.div`
   appearance: none;
   font: inherit;
   font-size: var(--font-size-compact);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: currentColor;
   background: color-mix(in srgb, currentColor 10%, var(--color-surface-raised));
-  border: 1px solid currentColor;
+  border: var(--border-width-hairline) solid currentColor;
   border-right: 0;
   border-radius: var(--radius-regular) 0 0 var(--radius-regular);
   overflow: hidden;
 
   @container (min-width: ${QUEUE_ROW_MIN}px) {
-    border-right: 1px solid currentColor;
+    border-right: var(--border-width-hairline) solid currentColor;
     border-bottom: 0;
     border-radius: var(--radius-regular) var(--radius-regular) 0 0;
   }
@@ -1020,7 +1020,7 @@ const InFlightQueue__Bar = styled.div`
   height: var(--s);
   overflow: hidden;
   background: var(--color-surface-panel);
-  border: 1px solid currentColor;
+  border: var(--border-width-hairline) solid currentColor;
   border-radius: 0 var(--radius-regular) var(--radius-regular) 0;
 
   @container (min-width: ${QUEUE_ROW_MIN}px) {
@@ -1060,7 +1060,7 @@ const InFlightList__Root = styled.div<{ $row: boolean }>`
   font-family: var(--font-family-mono);
   font-size: var(--font-size-compact);
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
 `;
 

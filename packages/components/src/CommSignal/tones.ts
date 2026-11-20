@@ -19,6 +19,6 @@ export const TONE_TEXT_COLOR: Record<Tone, string> = {
 /** The dim uppercase label beside a detail figure or above the route. */
 export const CAPTION_LABEL_STYLE = {
   color: "var(--color-text-dim)",
-  letterSpacing: "0.1em",
+  letterSpacing: "calc(0.1em * var(--tracking-scale))",
   textTransform: "uppercase" as const,
 };

@@ -13,12 +13,12 @@ export const Kbd = styled.kbd`
   display: inline-block;
   padding: var(--inset-chip);
   border-radius: var(--radius-regular);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   background: var(--color-surface-panel);
   color: var(--color-text-primary);
   font-family: inherit;
   font-size: var(--font-size-caption);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-body);
   white-space: nowrap;
 `;

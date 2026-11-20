@@ -261,7 +261,7 @@ export function useMapPainting({
     const { w, h } = containerSize;
     const ctx = sizedContext(canvas, w, h);
     if (!ctx) return;
-    paintPrediction(ctx, {
+    paintPrediction(canvas, ctx, {
       w,
       h,
       camera,
@@ -325,7 +325,7 @@ export function useMapPainting({
         continue;
       }
       // The observation is held wherever it is not the current marker: the kit draws it as the held square, beside a modelled position where there is one.
-      paintCrosshair(ctx, x, y, true);
+      paintCrosshair(canvas, ctx, x, y, true);
       if (modelled !== undefined && modelledPosition?.spread) {
         // Each point in the repeat of the world nearest the modelled one, so a stretch across the antimeridian stays one line.
         paintSpread(

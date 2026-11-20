@@ -2110,7 +2110,7 @@ export function LineChart({
                 width={chipW}
                 height={13}
                 rx={2}
-                fill="rgba(0, 0, 0, 0.55)"
+                fill="color-mix(in srgb, var(--color-scrim) 55%, transparent)"
               />
               <text x={chipX + 3} y={rowY + 10} fill={s.color} fontSize={10}>
                 {labelText}
@@ -2150,7 +2150,7 @@ export function LineChart({
         width: "max-content",
         padding: "var(--gap-line) var(--gap-related)",
         background: "var(--color-surface-panel)",
-        border: "1px solid var(--color-border-strong)",
+        border: "var(--border-width-hairline) solid var(--color-border-strong)",
         borderRadius: 3,
       }}
     >

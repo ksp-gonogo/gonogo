@@ -46,6 +46,18 @@ const REPO = join(HERE, "..", "..", "..");
 /** Where tokens are declared. One file, and it is the source of truth. */
 const TOKEN_SOURCES = ["packages/theme/src/tokens.css"];
 
+/**
+ * The files that map a theme's foundation values onto the variables, so they
+ * name every rung by construction: the theme itself, the table that writes it,
+ * and the copy the sdk's test harness mounts.
+ */
+const THEME_MAPPING_FILES = [
+  "packages/theme/src/defaultDarkTheme.ts",
+  "packages/theme/src/themeVariables.ts",
+  "packages/ui-kit/src/UiKitThemeProvider.test.tsx",
+  "mod/sitrep-sdk/src/__generated__/test-theme.ts",
+];
+
 /** `--foo:` in a stylesheet, and `"--foo":` in a JS style object. */
 const DECLARATION_RE = /(--[a-z0-9-]{2,})["']?\s*:/g;
 
@@ -297,25 +309,26 @@ describe("design-system: every token reference resolves", () => {
   });
 });
 
-/** A mention of a palette rung, in a declaration or a reference alike. */
-const PALETTE_RE = /--palette-[a-z0-9-]+/g;
+/** A mention of a status step, in a declaration or a reference alike. */
+const PALETTE_RE = /--status-[a-z0-9-]+/g;
 
 function paletteMentions(text: string): string[] {
   return [...text.matchAll(PALETTE_RE)].map((m) => m[0]);
 }
 
 /**
- * A palette rung is a raw hue with no job, so only `tokens.css` may name one,
+ * A status step is a raw shade with no job, so only `tokens.css` may name one,
  * to define the role tokens everything else reads. A widget or primitive that
  * reached a rung directly would pick a colour by how it looks rather than by
  * what it is for, which is the mistake the role tokens exist to prevent.
  */
-describe("design-system: a palette rung is named only where role tokens are defined", () => {
-  it("has no --palette-* outside tokens.css", { timeout: 120_000 }, () => {
+describe("design-system: a status step is named only where role tokens are defined", () => {
+  it("has no --status-* outside tokens.css", { timeout: 120_000 }, () => {
     const outside: string[] = [];
     for (const file of styleguideScanRoots(REPO).flatMap(sourceFiles)) {
       const rel = file.slice(REPO.length + 1);
       if (TOKEN_SOURCES.includes(rel)) continue;
+      if (THEME_MAPPING_FILES.includes(rel)) continue;
       if (rel.endsWith("styleguide-token-refs.test.ts")) continue;
       stripped(file)
         .split("\n")
@@ -329,12 +342,12 @@ describe("design-system: a palette rung is named only where role tokens are defi
   });
 
   it("sees a rung wherever it is written", () => {
-    expect(paletteMentions("color: var(--palette-amber-400);")).toEqual([
-      "--palette-amber-400",
+    expect(paletteMentions("color: var(--status-warn-2);")).toEqual([
+      "--status-warn-2",
     ]);
     expect(
-      paletteMentions('style={{ background: "var(--palette-green-500)" }}'),
-    ).toEqual(["--palette-green-500"]);
+      paletteMentions('style={{ background: "var(--status-go-2)" }}'),
+    ).toEqual(["--status-go-2"]);
     const sheet = stripComments(
       readFileSync(join(REPO, TOKEN_SOURCES[0]), "utf8"),
     );

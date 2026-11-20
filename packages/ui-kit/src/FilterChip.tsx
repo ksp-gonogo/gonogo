@@ -89,19 +89,19 @@ const ChipButton = styled.button<{ $selected: boolean }>`
   /* --radius-pill keeps the stadium shape through a padding change. */
   border-radius: var(--radius-pill);
   font-size: var(--font-size-compact);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   /* Sentence case: a real toggle button rather than a Badge, and its label is not the kit's to shout. */
   cursor: pointer;
   transition:
-    background var(--duration-fast),
-    border-color var(--duration-fast),
-    color var(--duration-fast);
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
 
   background: ${({ $selected }) =>
     $selected ? "var(--color-accent-fg)" : "transparent"};
   color: ${({ $selected }) =>
     $selected ? "var(--color-text-inverse)" : "var(--color-text-dim)"};
-  border: 1px solid
+  border: var(--border-width-hairline) solid
     ${({ $selected }) =>
       $selected ? "var(--color-accent-fg)" : "var(--color-border-subtle)"};
 

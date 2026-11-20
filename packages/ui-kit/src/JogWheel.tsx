@@ -503,7 +503,7 @@ const JogWheel__Root = styled.div<{
   height: ${(p) => p.$height}px;
   padding: ${(p) =>
     p.$compact ? "var(--inset-jog-wheel-compact)" : "var(--inset-jog-wheel)"};
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);

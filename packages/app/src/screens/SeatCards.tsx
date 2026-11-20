@@ -84,7 +84,7 @@ const SeatCard__Button = styled.button`
   font: inherit;
   color: var(--color-text-primary);
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-floating);
   cursor: pointer;
 
@@ -105,7 +105,7 @@ const SeatCard__Button = styled.button`
 
 const SeatCard__Title = styled.span`
   font-size: var(--font-size-lg);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 `;
 
 const SeatCard__Body = styled.span`

@@ -29,6 +29,7 @@ import {
   DEFAULT_DATA_RATE,
   dataRateChoiceOf,
 } from "../telemetry/dataRate";
+import { ThemeRow } from "../theme/ThemeRow";
 import { AppVersion } from "./AppVersion";
 import { ControlFrameSettings } from "./ControlFrameSettings";
 import { GonogoSettings } from "./GonogoSettings";
@@ -325,7 +326,7 @@ function JoinedConnectionPanel({ game }: Readonly<{ game: JoinedGame }>) {
 
 const JoinedCode = styled.code`
   font-size: var(--font-size-value);
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: var(--color-info-text);
 `;
 
@@ -363,6 +364,12 @@ function GeneralSettings({
 
   return (
     <SectionStack>
+      <Stack as="section" gap="related-comfortable">
+        <SectionTitle as="h3" $rule>
+          Appearance
+        </SectionTitle>
+        <ThemeRow />
+      </Stack>
       {[...byCategory.entries()].map(([category, items]) => (
         <Stack as="section" gap="related-comfortable" key={category}>
           <SectionTitle as="h3" $rule>

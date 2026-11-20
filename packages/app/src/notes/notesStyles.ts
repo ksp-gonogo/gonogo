@@ -7,7 +7,7 @@ export const Item = styled.div`
   align-items: start;
   padding: var(--inset-surface);
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
 `;
 

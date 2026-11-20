@@ -175,7 +175,7 @@ const SMA_CAPTION_STYLE = { textAlign: "center" } as const;
 /** Display tier, off the type scale. Only a floor: the widget writes `readoutFontPx` over it. */
 const SMA_DISPLAY_STYLE = {
   fontSize: "28px",
-  letterSpacing: "0.04em",
+  letterSpacing: "calc(0.04em * var(--tracking-scale))",
   color: "var(--color-text-primary)",
   textAlign: "center",
   whiteSpace: "nowrap",

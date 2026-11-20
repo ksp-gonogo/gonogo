@@ -203,7 +203,8 @@ export function RosterTable({
         align="center"
         style={{
           height: ROW_HEIGHT,
-          borderBottom: "1px solid var(--color-border-subtle)",
+          borderBottom:
+            "var(--border-width-hairline) solid var(--color-border-subtle)",
         }}
       >
         <ColLabel>Vessel</ColLabel>

@@ -175,7 +175,10 @@ export function ActionGroupView({
                 >
                   <Stack as="span" style={{ minWidth: 0 }}>
                     <Truncate
-                      style={{ fontWeight: 600, letterSpacing: "0.05em" }}
+                      style={{
+                        fontWeight: "var(--font-weight-semibold)",
+                        letterSpacing: "calc(0.05em * var(--tracking-scale))",
+                      }}
                     >
                       {currentLabel}
                     </Truncate>

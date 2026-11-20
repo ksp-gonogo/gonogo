@@ -79,7 +79,7 @@ export function StageStackSection({
           <ReadoutCaption
             style={{
               color: "var(--color-text-faint)",
-              letterSpacing: "0.1em",
+              letterSpacing: "calc(0.1em * var(--tracking-scale))",
               marginBottom: "var(--gap-under-title)",
             }}
           >

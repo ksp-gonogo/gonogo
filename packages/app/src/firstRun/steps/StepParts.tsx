@@ -83,7 +83,7 @@ export const Hint = styled.div`
   flex-direction: column;
   gap: var(--gap-related);
   padding-left: var(--indent-settings);
-  border-left: 2px solid var(--color-border-strong);
+  border-left: var(--border-width-strong) solid var(--color-border-strong);
   font-size: var(--font-size-compact);
   line-height: var(--line-height-prose);
   color: var(--color-text-muted);

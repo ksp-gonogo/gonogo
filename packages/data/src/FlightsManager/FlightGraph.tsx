@@ -274,7 +274,7 @@ const Wrap = styled.div`
   gap: var(--gap-related);
   padding: var(--inset-surface);
   background: var(--color-surface-panel);
-  border-top: 1px solid var(--color-surface-raised);
+  border-top: var(--border-width-hairline) solid var(--color-surface-raised);
 `;
 
 const Toolbar = styled.div`
@@ -285,7 +285,7 @@ const Toolbar = styled.div`
 
 const PickerLabel = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;
@@ -321,7 +321,7 @@ const ErrorLine = styled.div`
   font-size: var(--font-size-compact);
   color: var(--color-nogo-text);
   background: var(--color-tag-dark-brown-bg);
-  border: 1px solid var(--color-nogo-muted);
+  border: var(--border-width-hairline) solid var(--color-nogo-muted);
   padding: var(--inset-surface);
   border-radius: var(--radius-regular);
 `;

@@ -133,6 +133,6 @@ const StatusDot = styled.span`
   height: 10px;
   border-radius: var(--radius-circle);
   background: var(--color-warn-mark);
-  border: 2px solid var(--color-surface-raised);
+  border: var(--border-width-strong) solid var(--color-surface-raised);
   pointer-events: none;
 `;

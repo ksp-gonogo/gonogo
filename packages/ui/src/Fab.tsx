@@ -100,13 +100,13 @@ const FabLabel = styled.span<{ $visible: boolean }>`
   white-space: nowrap;
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-floating);
   padding: var(--inset-surface);
   font-family: var(--font-family-mono);
   font-size: var(--font-size-compact);
   line-height: var(--line-height-tight);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-fab);
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transform: translateY(${({ $visible }) => ($visible ? "0" : "16px")});
   /* Off the duration scale: tuned against the 16px travel and FabCluster's 400ms leave delay. */
@@ -120,12 +120,12 @@ const FabGlyph = styled.span<{ $visible: boolean }>`
   height: 40px;
   border-radius: var(--radius-circle);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   color: var(--color-info-text);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-fab);
   flex: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transform: translateY(${({ $visible }) => ($visible ? "0" : "16px")});
@@ -138,10 +138,10 @@ const FabGlyph = styled.span<{ $visible: boolean }>`
 
   /* The same 0.18s as FabLabel. */
   transition:
-    background var(--duration-base),
+    background var(--duration-base) var(--ease-standard),
     transform 0.18s var(--ease-standard),
     opacity 0.18s var(--ease-standard),
-    border-color var(--duration-base);
+    border-color var(--duration-base) var(--ease-standard);
 
   @media (hover: hover) {
     ${FabRow}:hover & {

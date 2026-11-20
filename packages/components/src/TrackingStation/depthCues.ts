@@ -6,11 +6,11 @@ import type { Vec3Tuple } from "@ksp-gonogo/sitrep-client";
 const DEPTH_FULL_SCALE_PX = 40;
 
 /** Above the reference plane. */
-export const DEPTH_ABOVE_COLOUR = "rgb(230, 90, 90)";
+export const DEPTH_ABOVE_COLOUR = "var(--color-diagram-depth-above)";
 /** In it. */
-export const DEPTH_LEVEL_COLOUR = "rgb(160, 160, 170)";
+export const DEPTH_LEVEL_COLOUR = "var(--color-diagram-depth-level)";
 /** Below it. */
-export const DEPTH_BELOW_COLOUR = "rgb(80, 130, 230)";
+export const DEPTH_BELOW_COLOUR = "var(--color-diagram-depth-below)";
 
 /** How strongly a depth of `depthPx` screen pixels should read, 0 to 1. */
 export function depthStrength(depthPx: number): number {

@@ -138,7 +138,7 @@ const Radio__Indicator = styled.div`
   block-size: var(--control-height);
   min-height: var(--control-height);
   padding-inline: var(--gap-glyph-box);
-  border: 1px solid var(--color-neutral-mark);
+  border: var(--border-width-hairline) solid var(--color-neutral-mark);
   border-radius: var(--radius-regular);
   font-size: var(--font-size-compact);
   /* The icon's box is the stack's height, so the two share a centre line. */

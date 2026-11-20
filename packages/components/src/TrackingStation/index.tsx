@@ -1089,15 +1089,15 @@ const COMPACT_BODY: CSSProperties = {
 const COMPACT_VALUE: CSSProperties = {
   // Off the type scale: the scale stops at --font-size-lg (16px) and this is a display-tier readout.
   fontSize: "22px",
-  fontWeight: 700,
+  fontWeight: "var(--font-weight-bold)",
   color: "var(--color-text-primary)",
-  letterSpacing: "0.04em",
+  letterSpacing: "calc(0.04em * var(--tracking-scale))",
 };
 
 const COMPACT_SUB: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
-  letterSpacing: "0.05em",
+  letterSpacing: "calc(0.05em * var(--tracking-scale))",
 };
 
 // Flush: SystemDiagram reserves its own padding inside the viewBox, and the frame's edge separates it from the sidebar.

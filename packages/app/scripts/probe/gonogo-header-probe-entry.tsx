@@ -2,7 +2,10 @@ import "../../src/uplinks/install-host-first";
 import { ScreenProvider } from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
-import { harnessTheme, StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  harnessThemeFull,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
 import { createRoot, type Root } from "react-dom/client";
@@ -170,7 +173,7 @@ async function renderScene(scene: Scene): Promise<void> {
 
   root = createRoot(el);
   root.render(
-    <ThemeProvider theme={harnessTheme}>
+    <ThemeProvider theme={harnessThemeFull}>
       <ScreenProvider value={scene.screen}>
         <ModalProvider>
           <TelemetryProvider client={client}>

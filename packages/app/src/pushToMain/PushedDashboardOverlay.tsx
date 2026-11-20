@@ -242,7 +242,7 @@ function PushedItem({
 const Backdrop = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: color-mix(in srgb, var(--color-shadow) 75%, transparent);
   z-index: var(--z-overlay);
   display: flex;
   align-items: center;
@@ -261,7 +261,7 @@ const OverlaySurface = styled(Box).attrs({
   width: 100%;
   height: 100%;
   max-width: 1600px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-takeover);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -272,15 +272,15 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: var(--inset-overlay-band);
-  border-bottom: 1px solid var(--color-surface-raised);
+  border-bottom: var(--border-width-hairline) solid var(--color-surface-raised);
   background: var(--color-surface-panel);
   flex-shrink: 0;
 `;
 
 const Title = styled.div`
   font-size: var(--font-size-value);
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   color: var(--color-text-muted);
 `;
 
@@ -301,7 +301,7 @@ const Viewport = styled.div`
 const ItemFrame = styled.div`
   position: absolute;
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   /* Grid (not flex) so the body row has a definite height. Widgets whose
      root is @ksp-gonogo/ui's Panel use height: 100% and need a concrete
@@ -318,13 +318,13 @@ const ItemHeader = styled.div`
   justify-content: space-between;
   padding: var(--inset-surface);
   background: var(--color-surface-panel);
-  border-bottom: 1px solid var(--color-surface-raised);
+  border-bottom: var(--border-width-hairline) solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
 
 const StationChip = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-info-text);
 `;

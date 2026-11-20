@@ -436,7 +436,7 @@ const List = styled.div`
 
 const ProfileRow = styled.div`
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   padding: var(--inset-surface);
   display: flex;
@@ -454,7 +454,7 @@ const ProfileHeader = styled.div`
 const ProfileName = styled.span`
   font-size: var(--font-size-value);
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 `;
 
 const ProfileMeta = styled.span`

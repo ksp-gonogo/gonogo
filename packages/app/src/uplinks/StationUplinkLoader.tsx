@@ -578,7 +578,7 @@ const StationUplinkGate__Track = styled.div`
   overflow: hidden;
   border-radius: var(--radius-pill);
   background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
 `;
 
 const StationUplinkGate__Fill = styled.div<{

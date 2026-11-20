@@ -47,8 +47,8 @@ export const RATE_ROW_STYLE = {
 /* Off the type scale, which stops at --font-size-lg: this is a display-tier readout. */
 export const RATE_VALUE_STYLE = {
   fontSize: "24px",
-  fontWeight: 700,
-  letterSpacing: "0.04em",
+  fontWeight: "var(--font-weight-bold)",
+  letterSpacing: "calc(0.04em * var(--tracking-scale))",
   lineHeight: "var(--line-height-flush)",
 } as const;
 
@@ -160,11 +160,13 @@ const WARP_BUTTON_GEOMETRY: CSSProperties = {
   lineHeight: "normal",
   padding: "var(--inset-warp-button)",
   fontSize: "var(--font-size-compact)",
-  letterSpacing: "0.04em",
+  letterSpacing: "calc(0.04em * var(--tracking-scale))",
   minWidth: "var(--control-height-touch)",
 };
 
-const WARP_BUTTON_ACTIVE: CSSProperties = { fontWeight: 700 };
+const WARP_BUTTON_ACTIVE: CSSProperties = {
+  fontWeight: "var(--font-weight-bold)",
+};
 
 const WARP_BUTTON_REST: CSSProperties = {
   fontWeight: 500,

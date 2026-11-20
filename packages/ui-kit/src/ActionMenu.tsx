@@ -382,7 +382,7 @@ const MenuItemWord = styled.span`
   }
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 `;
 
 const Menu = styled.div`
@@ -392,7 +392,7 @@ const Menu = styled.div`
   max-height: 280px;
   overflow-y: auto;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   padding: var(--inset-menu-list);
   z-index: var(--z-dropdown);
@@ -400,8 +400,8 @@ const Menu = styled.div`
 
 const GroupHeader = styled.div`
   font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
   padding: var(--inset-menu-group-label);
@@ -410,7 +410,7 @@ const GroupHeader = styled.div`
 const MenuItem = styled.button<{ $disabled?: boolean }>`
   position: relative;
   /* A border of its own, clear at rest, so the state edges of a command are drawn on the item's box as on every other input. */
-  border: 1px solid transparent;
+  border: var(--border-width-hairline) solid transparent;
   display: flex;
   align-items: center;
   gap: var(--gap-related);

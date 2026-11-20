@@ -618,9 +618,9 @@ function formatTMinus(utTarget: number, utNow: number | null): string {
 // like part of the chrome rather than a hovering modal.
 const TONE_BG: Record<Tone, string> = {
   idle: "var(--color-surface-raised)",
-  set: "rgb(20, 35, 15)",
-  arm: "rgb(55, 40, 12)",
-  fire: "rgb(80, 12, 12)",
+  set: "var(--color-alarm-set)",
+  arm: "var(--color-alarm-arm)",
+  fire: "var(--color-alarm-fire)",
 };
 const TONE_BORDER: Record<Tone, string> = {
   idle: "var(--color-border-subtle)",
@@ -637,13 +637,13 @@ const TONE_COUNT: Record<Tone, string> = {
 
 const Wrap = styled.div<{ $tone: Tone }>`
   background: ${({ $tone }) => TONE_BG[$tone]};
-  border: 1px solid ${({ $tone }) => TONE_BORDER[$tone]};
+  border: var(--border-width-hairline) solid ${({ $tone }) => TONE_BORDER[$tone]};
   /* Half the strip's single-row height, so one row is still a pill and a wrapped line keeps square-ish corners clear of its text. */
-  border-radius: min(var(--radius-pill), 1.5rem);
+  border-radius: min(var(--radius-banner), 1.5rem);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
   padding: var(--inset-banner);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--shadow-banner);
   pointer-events: auto;
   max-width: 100%;
   animation: bannerSlideIn var(--duration-entrance) var(--ease-entrance) forwards;
@@ -671,13 +671,13 @@ const Wrap = styled.div<{ $tone: Tone }>`
 
 const Label = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;
 
 const BannerValue = styled.span`
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 `;
 
@@ -693,7 +693,7 @@ const VerticalRule = styled.span`
 
 const AlarmName = styled.span`
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   max-width: 22em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -705,7 +705,7 @@ const AlarmName = styled.span`
 // Two different things under one name at the call site is the whole reason
 // `styleguide-shadowed-primitives` exists.
 const CountdownText = styled.span<{ $tone: Tone }>`
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: ${({ $tone }) => TONE_COUNT[$tone]};
   font-variant-numeric: tabular-nums;
 `;
@@ -717,13 +717,13 @@ const Quiet = styled.span`
 
 const AckButton = styled.button`
   background: none;
-  border: 1px solid var(--color-nogo-mark);
+  border: var(--border-width-hairline) solid var(--color-nogo-mark);
   color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   cursor: pointer;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   @media (hover: hover) {
     &:hover {
@@ -739,22 +739,22 @@ const WarpArrow = styled.span`
 `;
 
 const WarpToTarget = styled.span`
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-go-text);
   font-variant-numeric: tabular-nums;
 `;
 
 const WarpToButton = styled.button`
   background: var(--color-go-status);
-  border: 1px solid var(--color-go-status);
+  border: var(--border-width-hairline) solid var(--color-go-status);
   color: var(--color-go-on-status);
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   cursor: pointer;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   display: inline-flex;
   align-items: center;
   gap: var(--gap-related);
@@ -776,15 +776,15 @@ const WarpToButton = styled.button`
 
 const StopWarpButton = styled.button`
   background: var(--color-warn-mark);
-  border: 1px solid var(--color-warn-mark);
+  border: var(--border-width-hairline) solid var(--color-warn-mark);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   cursor: pointer;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   display: inline-flex;
   align-items: center;
   gap: var(--gap-related);
@@ -808,7 +808,7 @@ const SafetyInput = styled.input`
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   font-variant-numeric: tabular-nums;
   &:focus-visible {

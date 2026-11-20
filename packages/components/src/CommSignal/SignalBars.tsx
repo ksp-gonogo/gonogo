@@ -38,7 +38,7 @@ export function SignalBars({
             style={{
               width: 6,
               background: color,
-              border: `1px solid ${color}`,
+              border: `var(--border-width-hairline) solid ${color}`,
               // Off-scale on purpose: the 2px radius token rounds a 6px bar into a lozenge.
               borderRadius: 1,
               height: `${BAR_HEIGHT_PCT[i - 1]}%`,
@@ -62,7 +62,7 @@ export function SignalHeadline({
     <Text
       size="lg"
       style={{
-        letterSpacing: "0.04em",
+        letterSpacing: "calc(0.04em * var(--tracking-scale))",
         fontWeight: lost ? 700 : 400,
         color: lost ? "var(--color-nogo-text)" : undefined,
       }}

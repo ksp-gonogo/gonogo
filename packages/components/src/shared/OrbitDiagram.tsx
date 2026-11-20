@@ -497,8 +497,8 @@ function OrbitDiagramScene({
     : isOrbiting === null
       ? "var(--color-text-faint)"
       : isOrbiting
-        ? "rgba(0,255,136,0.55)"
-        : "rgba(255,80,0,0.55)";
+        ? "color-mix(in srgb, var(--color-accent-fg) 55%, transparent)"
+        : "color-mix(in srgb, var(--color-diagram-orbit-retro) 55%, transparent)";
   // Squares the width of the line with two widths between them: the held mark, repeated along the path.
   const orbitDash = held ? `${strokeW} ${strokeW * 2}` : undefined;
 
@@ -579,7 +579,7 @@ function OrbitDiagramScene({
             <path
               d={corridorPath}
               fillRule="evenodd"
-              fill="rgba(255,180,40,0.22)"
+              fill="color-mix(in srgb, var(--color-diagram-orbit-burn) 22%, transparent)"
               stroke="none"
             />
           )}
@@ -595,7 +595,7 @@ function OrbitDiagramScene({
                     projected.periapsis * HYPERBOLIC_SCALE,
                   )}
                   fill="none"
-                  stroke="rgba(255,180,40,0.75)"
+                  stroke="color-mix(in srgb, var(--color-diagram-orbit-burn) 75%, transparent)"
                   strokeWidth={strokeW}
                   strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
                 />
@@ -606,7 +606,7 @@ function OrbitDiagramScene({
                   rx={projected.sma}
                   ry={projB}
                   fill="none"
-                  stroke="rgba(255,180,40,0.75)"
+                  stroke="color-mix(in srgb, var(--color-diagram-orbit-burn) 75%, transparent)"
                   strokeWidth={strokeW}
                   strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
                 />
@@ -624,7 +624,7 @@ function OrbitDiagramScene({
                     secondaryProjected.periapsis * HYPERBOLIC_SCALE,
                   )}
                   fill="none"
-                  stroke="rgba(255,180,40,0.95)"
+                  stroke="color-mix(in srgb, var(--color-diagram-orbit-burn) 95%, transparent)"
                   strokeWidth={strokeW}
                 />
               ) : (
@@ -634,7 +634,7 @@ function OrbitDiagramScene({
                   rx={secondaryProjected.sma}
                   ry={sec2B}
                   fill="none"
-                  stroke="rgba(255,180,40,0.95)"
+                  stroke="color-mix(in srgb, var(--color-diagram-orbit-burn) 95%, transparent)"
                   strokeWidth={strokeW}
                 />
               )}
@@ -725,8 +725,8 @@ function OrbitDiagramScene({
                 r={bodyRadius + atmosphereDepthM}
                 fill={
                   atmosphereHasOxygen
-                    ? "rgba(80, 160, 220, 0.18)"
-                    : "rgba(220, 140, 60, 0.16)"
+                    ? "color-mix(in srgb, var(--color-diagram-atmosphere-oxygen) 18%, transparent)"
+                    : "color-mix(in srgb, var(--color-diagram-atmosphere-inert) 16%, transparent)"
                 }
               />
             )}
@@ -745,14 +745,14 @@ function OrbitDiagramScene({
                 y1={0}
                 x2={bodyDisc * 0.85}
                 y2={0}
-                stroke="rgba(255, 255, 255, 0.35)"
+                stroke="color-mix(in srgb, var(--color-highlight) 35%, transparent)"
                 strokeWidth={strokeW * 0.6}
               />
               <circle
                 cx={bodyDisc * 0.9}
                 cy={0}
                 r={dotR * 0.5}
-                fill="rgba(255, 255, 255, 0.7)"
+                fill="color-mix(in srgb, var(--color-highlight) 70%, transparent)"
               />
             </g>
           )}
@@ -879,7 +879,7 @@ function OrbitDiagramScene({
                     0.5 *
                     Math.sin((rotationAngleDeg * Math.PI) / 180)
                   }
-                  fill="rgba(255, 255, 255, 0.85)"
+                  fill="color-mix(in srgb, var(--color-highlight) 85%, transparent)"
                   fontSizePx={labelPxSize}
                   vbPerPx={vbPerPx}
                   text="Spin"

@@ -257,8 +257,8 @@ const PHASE_CHIP_STYLE: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   padding: "var(--inset-chip)",
   borderRadius: "var(--radius-pill)",
-  letterSpacing: "0.08em",
-  border: "1px solid var(--color-border-subtle)",
+  letterSpacing: "calc(0.08em * var(--tracking-scale))",
+  border: "var(--border-width-hairline) solid var(--color-border-subtle)",
   color: "var(--color-text-dim)",
 };
 
@@ -274,13 +274,13 @@ const NODE_LI_BASE: CSSProperties = {
 const NODE_LI_ACTIVE: CSSProperties = {
   ...NODE_LI_BASE,
   background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-border-subtle)",
+  border: "var(--border-width-hairline) solid var(--color-border-subtle)",
 };
 
 const NODE_LI_COMPLETED: CSSProperties = {
   ...NODE_LI_BASE,
   background: "var(--color-go-muted)",
-  border: "1px solid var(--color-go-mark)",
+  border: "var(--border-width-hairline) solid var(--color-go-mark)",
 };
 
 const NODE_MAIN_STYLE: CSSProperties = {
@@ -306,13 +306,13 @@ const NODE_PRIMARY_ACTIVE: CSSProperties = {
 const NODE_PRIMARY_COMPLETED: CSSProperties = {
   ...NODE_PRIMARY_BASE,
   color: "var(--color-go-text)",
-  fontWeight: 600,
+  fontWeight: "var(--font-weight-semibold)",
 };
 
 const NODE_META_STYLE: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   color: "var(--color-text-dim)",
-  letterSpacing: "0.04em",
+  letterSpacing: "calc(0.04em * var(--tracking-scale))",
 };
 
 const ROW_ACTIONS_STYLE: CSSProperties = {
@@ -323,7 +323,7 @@ const ROW_ACTIONS_STYLE: CSSProperties = {
 
 const EDIT_PANEL_STYLE: CSSProperties = {
   gridColumn: "1 / -1",
-  borderTop: "1px dashed var(--color-border-subtle)",
+  borderTop: "var(--border-width-hairline) dashed var(--color-border-subtle)",
   paddingTop: "var(--inset-below-rule)",
   marginTop: "var(--gap-disclosure)",
 };

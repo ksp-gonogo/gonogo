@@ -11,13 +11,13 @@ export const Body = styled.div`
 export const PadStatusLine = styled.span`
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   font-variant-numeric: tabular-nums;
 `;
 
 export const AbsenceLine = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: var(--color-text-faint);
 `;
 
@@ -44,7 +44,7 @@ export const FacilityCell = styled.div`
 
 export const FacilityLabel = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
   /* Off the line-height scale: the min-height below is two of these lines, so the two move together. */
@@ -56,7 +56,7 @@ export const FacilityLabel = styled.span`
 
 export const FacilityValue = styled.span`
   font-size: var(--font-size-value);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 `;
@@ -108,7 +108,7 @@ export const UpgradeCost = styled.span<{ $verdict: "yes" | "no" | undefined }>`
 
 export const MaxBadge = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: var(--color-text-faint);
   text-transform: uppercase;
   margin-top: var(--gap-caption);
@@ -120,7 +120,7 @@ export const TierSpecs = styled.div`
   gap: var(--gap-related);
   margin-top: var(--gap-related-compact);
   padding-top: var(--inset-below-rule);
-  border-top: 1px dashed var(--color-border-subtle);
+  border-top: var(--border-width-hairline) dashed var(--color-border-subtle);
 `;
 
 export const TierBlock__Root = styled.div`
@@ -131,7 +131,7 @@ export const TierBlock__Root = styled.div`
 
 export const TierBlock__Heading = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-faint);
 `;

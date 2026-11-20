@@ -52,6 +52,9 @@ const { defaultDarkTheme } = await import(
 
 /** The doc comment each top-level group carries, so the published theme's groups say what they hold. */
 const GROUP_DOCS = {
+  radius: "The corner radii as `var(--radius-...)` references.",
+  space: "The spacing ladder as `var(--space-...)` references.",
+  sizes: "The fixed control sizes as `var(--...)` references.",
   colors:
     "Colour roles as `var(--color-...)` references: text, surfaces, borders, the accent and the focus ring.",
   typography:
@@ -68,12 +71,21 @@ function emit(node, depth) {
     const k = /^[A-Za-z_][A-Za-z0-9_]*$/.test(key) ? key : JSON.stringify(key);
     if (depth === 1 && GROUP_DOCS[key])
       out.push(`${pad}/** ${GROUP_DOCS[key]} */`);
+    if (Array.isArray(value)) {
+      leaves += value.length;
+      out.push(
+        `${pad}${k}: [`,
+        ...value.map((v) => `${pad}  ${JSON.stringify(v)},`),
+        `${pad}],`,
+      );
+      continue;
+    }
     if (value !== null && typeof value === "object") {
       out.push(`${pad}${k}: {`, ...emit(value, depth + 1), `${pad}},`);
-    } else {
-      leaves++;
-      out.push(`${pad}${k}: ${JSON.stringify(value)},`);
+      continue;
     }
+    leaves++;
+    out.push(`${pad}${k}: ${JSON.stringify(value)},`);
   }
   return out;
 }
@@ -97,8 +109,8 @@ const lines = [
   "// live in `tokens.css`, which no test loads. So a test asserts on",
   "// `color: var(--color-text-primary)`, exactly as the app renders it.",
   "//",
-  "// No spacing or corner scale: the kit resolves a size prop against its own,",
-  "// so those need no provider.",
+  "// The foundation groups beyond colour and type (radius, space, sizes) are here",
+  "// too, as `var(--...)` handles.",
   "",
   "export const GENERATED_TEST_THEME = {",
   ...body,

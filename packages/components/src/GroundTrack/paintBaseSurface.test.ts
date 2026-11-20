@@ -32,6 +32,7 @@ describe("paintBaseSurface", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: STOCK,
+      wash: "wash",
       bodyColor: "#ff0000",
       suppressVanilla: false,
       layers: [],
@@ -45,6 +46,7 @@ describe("paintBaseSurface", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: STOCK,
+      wash: "wash",
       sketch: SKETCH,
       bodyColor: undefined,
       suppressVanilla: false,
@@ -59,6 +61,7 @@ describe("paintBaseSurface", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: STOCK,
+      wash: "wash",
       bodyColor: "#ff0000",
       suppressVanilla: false,
       layers: [layer("under"), layer("over")],
@@ -77,6 +80,7 @@ describe("paintBaseSurface", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: STOCK,
+      wash: "wash",
       bodyColor: "#ff0000",
       suppressVanilla: true,
       layers: [layer("only")],
@@ -90,6 +94,7 @@ describe("paintBaseSurface", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: STOCK,
+      wash: "wash",
       bodyColor: "#ff0000",
       suppressVanilla: true,
       layers: [],
@@ -103,6 +108,7 @@ describe("paintBaseSurface", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: null,
+      wash: "wash",
       bodyColor: "#ff0000",
       suppressVanilla: true,
       layers: [layer("only")],
@@ -116,6 +122,7 @@ describe("paintBaseSurface", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: null,
+      wash: "wash",
       bodyColor: "#ff0000",
       suppressVanilla: false,
       layers: [layer("over")],
@@ -129,6 +136,7 @@ describe("paintBaseSurface", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: null,
+      wash: "wash",
       bodyColor: undefined,
       suppressVanilla: false,
       layers: [],
@@ -145,6 +153,7 @@ describe("paintBaseSurface under a suppressing base layer", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: STOCK,
+      wash: "wash",
       sketch: SKETCH,
       bodyColor: "#ff0000",
       suppressVanilla: true,
@@ -181,6 +190,7 @@ describe("paintBaseSurface under a suppressing base layer", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: STOCK,
+      wash: "wash",
       sketch: null,
       bodyColor: undefined,
       suppressVanilla: false,

@@ -898,7 +898,7 @@ describe("CrewStatusComponent, row tone contribution", () => {
       .map((s) => s.textContent)
       .join("\n");
     expect(styleText).not.toContain(
-      "border-left:2px solid var(--color-nogo-mark);",
+      "border-left:var(--border-width-strong) solid var(--color-nogo-mark);",
     );
   });
 
@@ -926,7 +926,7 @@ describe("CrewStatusComponent, row tone contribution", () => {
       .map((s) => s.textContent)
       .join("\n");
     expect(styleText).toContain(
-      "border-left:2px solid var(--color-nogo-mark);",
+      "border-left:var(--border-width-strong) solid var(--color-nogo-mark);",
     );
   });
 
@@ -966,7 +966,9 @@ describe("CrewStatusComponent, row tone contribution", () => {
         (cls) => styleText.match(new RegExp(`\\.${cls}\\{[^}]*\\}`, "g")) ?? [],
       )
       .join("\n");
-    expect(rowRules).toContain("border-left:2px solid var(--color-warn-mark);");
+    expect(rowRules).toContain(
+      "border-left:var(--border-width-strong) solid var(--color-warn-mark);",
+    );
     expect(rowRules).not.toContain("var(--color-nogo-mark)");
   });
 });

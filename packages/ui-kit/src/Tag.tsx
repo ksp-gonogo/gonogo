@@ -137,15 +137,15 @@ const TagBadge = styled.span<{
         `
       : css`
           font-size: var(--font-size-caption);
-          font-weight: 600;
-          letter-spacing: 0.08em;
+          font-weight: var(--font-weight-semibold);
+          letter-spacing: calc(0.08em * var(--tracking-scale));
           text-transform: uppercase;
         `}
 
   ${({ $bg, $fg, $border }) => css`
     background: ${$bg};
     color: ${$fg};
-    border: 1px solid ${$border};
+    border: var(--border-width-hairline) solid ${$border};
   `}
 `;
 

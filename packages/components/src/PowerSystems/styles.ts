@@ -28,30 +28,30 @@ export const TOTALS_CELL: CSSProperties = {
   gap: "var(--gap-related)",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-border-subtle)",
+  border: "var(--border-width-hairline) solid var(--color-border-subtle)",
   borderRadius: "var(--radius-regular)",
 };
 
 export const MEASURED_CELL: CSSProperties = {
-  border: "1px dashed var(--color-warn-mark)",
+  border: "var(--border-width-hairline) dashed var(--color-warn-mark)",
 };
 
 // On the NET cell's tinted background text-faint fails 4.5:1, so its label takes the tone's foreground (NET_LABEL_COLOUR).
 export const CELL_LABEL: CSSProperties = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.12em",
+  letterSpacing: "calc(0.12em * var(--tracking-scale))",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",
 };
 
 export const CELL_VALUE: CSSProperties = {
-  fontWeight: 700,
+  fontWeight: "var(--font-weight-bold)",
   whiteSpace: "nowrap",
 };
 
 /** The NET figure may wrap between the number and its unit, so a narrow cell shows the unit on a second line rather than letting it run past the cell. */
 export const NET_VALUE: CSSProperties = {
-  fontWeight: 700,
+  fontWeight: "var(--font-weight-bold)",
   whiteSpace: "normal",
   lineHeight: "var(--line-height-tight)",
 };
@@ -66,7 +66,7 @@ export const STORED_PART: CSSProperties = {
 
 // An "amount / max" pair may wrap inside its narrow cell; NO_BREAK on each half keeps the separator with the maximum.
 export const STORED_VALUE: CSSProperties = {
-  fontWeight: 700,
+  fontWeight: "var(--font-weight-bold)",
   whiteSpace: "normal",
   lineHeight: "var(--line-height-tight)",
 };
@@ -78,13 +78,13 @@ export const SPARKLINE_ROW: CSSProperties = {
   marginBottom: "var(--gap-related-comfortable)",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-border-subtle)",
+  border: "var(--border-width-hairline) solid var(--color-border-subtle)",
   borderRadius: "var(--radius-regular)",
 };
 
 export const SPARKLINE_LABEL: CSSProperties = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.12em",
+  letterSpacing: "calc(0.12em * var(--tracking-scale))",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",
   display: "inline-flex",
@@ -161,7 +161,7 @@ export const COMPACT_BODY: CSSProperties = {
 
 export const COMPACT_RESOURCE: CSSProperties = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.08em",
+  letterSpacing: "calc(0.08em * var(--tracking-scale))",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",
 };
@@ -175,22 +175,22 @@ export const COMPACT_NET: CSSProperties = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   fontSize: "16px",
-  fontWeight: 700,
+  fontWeight: "var(--font-weight-bold)",
 };
 
 /** The NET cell's tint and edge per tone. */
 export const NET_CELL_BY_TONE: Record<NetTone, CSSProperties> = {
   go: {
     background: "var(--color-go-status)",
-    border: "1px solid var(--color-go-status)",
+    border: "var(--border-width-hairline) solid var(--color-go-status)",
   },
   warn: {
     background: "var(--color-warn-muted)",
-    border: "1px solid var(--color-warn-mark)",
+    border: "var(--border-width-hairline) solid var(--color-warn-mark)",
   },
   neutral: {
     background: "var(--color-surface-panel)",
-    border: "1px solid var(--color-border-subtle)",
+    border: "var(--border-width-hairline) solid var(--color-border-subtle)",
   },
 };
 
@@ -209,7 +209,7 @@ export const TREND_BOX: CSSProperties = {
   marginBottom: "var(--gap-related-comfortable)",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-border-subtle)",
+  border: "var(--border-width-hairline) solid var(--color-border-subtle)",
   borderRadius: "var(--radius-regular)",
 };
 

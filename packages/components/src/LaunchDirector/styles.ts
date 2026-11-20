@@ -10,7 +10,7 @@ function occupancyColor(occupied: boolean | null): string {
 
 export const SectionLabel = styled.div`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-faint);
   margin-top: var(--gap-caption);
@@ -38,7 +38,7 @@ export const PadMeta = styled.span`
 
 export const PadName = styled.span`
   font-size: var(--font-size-value);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 `;
 
@@ -72,7 +72,7 @@ export const PadDetail = styled.div`
   flex-direction: column;
   gap: var(--gap-related);
   padding-left: var(--indent-aside);
-  border-left: 2px solid var(--color-border-subtle);
+  border-left: var(--border-width-strong) solid var(--color-border-subtle);
 `;
 
 export const PadColumn = styled.div`
@@ -104,7 +104,7 @@ export const ShipMeta = styled.span`
 
 export const ShipName = styled.span`
   font-size: var(--font-size-value);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 `;
 
@@ -156,14 +156,14 @@ export const CrewGrid = styled.div<{ $compact: boolean }>`
 
 export const CrewName = styled.span`
   font-size: var(--font-size-value);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 `;
 
 export const CrewTrait = styled.span`
   font-size: var(--font-size-compact);
   color: inherit;
   opacity: 0.7;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 `;
 
 export const LaunchControls = styled.div`
@@ -207,7 +207,7 @@ export const FlightStatRow = styled.div`
 
 export const StatLabel = styled.dt`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-dim);
   margin: 0;
@@ -217,7 +217,7 @@ export const StatValue = styled.dd`
   margin: 0;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   margin-left: auto;
 `;
@@ -228,7 +228,7 @@ export const CrashChip = styled.div`
   font-size: var(--font-size-compact);
   padding: var(--inset-chip);
   border-radius: var(--radius-regular);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 `;
 
 export const FundsReadout = styled.span`
@@ -246,7 +246,7 @@ export const VesselSwitchPanel = styled.div`
   gap: var(--gap-line);
   max-height: 180px;
   overflow-y: auto;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   background: var(--color-surface-app);
   padding: var(--inset-switch-panel);
@@ -268,7 +268,7 @@ export const VesselSwitchMeta = styled.span`
   font-size: var(--font-size-caption);
   color: currentColor;
   opacity: 0.7;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   text-transform: uppercase;
 `;
 
@@ -299,7 +299,7 @@ export const CraftDiagramFrame = styled.div`
   top: 0;
   aspect-ratio: 3 / 4;
   min-height: 120px;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   background: var(--color-surface-app);
   overflow: hidden;
@@ -325,7 +325,7 @@ export const LastRecovery__Block = styled.div`
   flex-direction: column;
   gap: var(--gap-line);
   padding: var(--inset-chip);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
@@ -333,7 +333,7 @@ export const LastRecovery__Block = styled.div`
 
 export const LastRecovery__Label = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;

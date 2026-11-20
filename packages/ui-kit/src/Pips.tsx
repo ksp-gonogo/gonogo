@@ -64,6 +64,6 @@ const Pips__Pip = styled.span<{ $colour: string; $filled: boolean }>`
   width: 1em;
   height: 1em;
   border-radius: var(--radius-circle);
-  border: 2px solid ${({ $colour }) => $colour};
+  border: var(--border-width-strong) solid ${({ $colour }) => $colour};
   background: ${({ $colour, $filled }) => ($filled ? $colour : "transparent")};
 `;

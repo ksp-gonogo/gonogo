@@ -39,20 +39,20 @@ const Wrap = styled.div<{ $compact: boolean }>`
 
 const Label = styled.span<{ $compact: boolean }>`
   font-size: ${({ $compact }) => ($compact ? "9px" : "11px")};
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;
 
 const NameSpan = styled.button<{ $compact: boolean; $bare: boolean }>`
   background: none;
-  border: 1px dashed transparent;
+  border: var(--border-width-hairline) dashed transparent;
   border-radius: var(--radius-regular);
   padding: var(--inset-control-compact);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   color: var(--color-info-text);
   cursor: text;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   /* A long name gives way with an ellipsis rather than wrapping onto a second line of the banner. */
   max-width: ${({ $bare }) => ($bare ? "24ch" : "16ch")};
   min-width: 0;
@@ -72,12 +72,12 @@ const NameSpan = styled.button<{ $compact: boolean; $bare: boolean }>`
 
 const NameInput = styled.input<{ $compact: boolean }>`
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-text-faint);
+  border: var(--border-width-hairline) solid var(--color-text-faint);
   border-radius: var(--radius-regular);
   padding: var(--inset-control-compact);
   color: var(--color-info-text);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   outline: none;
 
   @media (pointer: coarse) {

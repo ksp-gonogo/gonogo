@@ -73,8 +73,8 @@ export const InlineOverflowGlow = styled.div<{
   transition: opacity var(--duration-base) var(--ease-standard);
   background: linear-gradient(
     to ${({ $position }) => ($position === "left" ? "right" : "left")},
-    rgba(255, 255, 255, 0.12),
-    rgba(255, 255, 255, 0) 100%
+    color-mix(in srgb, var(--color-highlight) 12%, transparent),
+    color-mix(in srgb, var(--color-highlight) 0%, transparent) 100%
   );
 
   @media (prefers-reduced-motion: reduce) {

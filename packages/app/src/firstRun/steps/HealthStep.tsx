@@ -104,7 +104,7 @@ const RowList = styled.ul`
 
 const CheckName = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
 `;

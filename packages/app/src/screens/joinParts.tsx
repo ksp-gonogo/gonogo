@@ -31,7 +31,7 @@ export const JoinBox = styled.div`
 /* The code is what a person reads aloud or checks against the inviting screen, so it is set large, above the type scale's --font-size-lg ceiling. */
 export const JoinCode = styled.code`
   font-size: 28px;
-  letter-spacing: 0.15em;
+  letter-spacing: calc(0.15em * var(--tracking-scale));
   color: var(--color-info-text);
 `;
 
@@ -49,12 +49,12 @@ export const JoinInput = styled.input`
   flex: 1 1 0;
   min-width: 0;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-text-faint);
+  border: var(--border-width-hairline) solid var(--color-text-faint);
   border-radius: var(--radius-regular);
   padding: var(--inset-control-prominent);
   /* Matches the heading's page-scale size, so a typed code reads like the one on the inviting screen. */
   font-size: 20px;
-  letter-spacing: 0.15em;
+  letter-spacing: calc(0.15em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-info-text);
 

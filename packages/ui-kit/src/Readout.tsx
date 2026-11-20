@@ -15,8 +15,8 @@ export type ReadoutSize = "hero" | "inline";
 
 const Readout__Box = styled.div<{ $size: ReadoutSize; $tone: Tone }>`
   display: ${({ $size }) => ($size === "hero" ? "flex" : "inline-flex")};
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: ${({ $tone }) => TONE_TEXT[$tone]};
   ${({ $size }) =>
     $size === "hero"
@@ -95,7 +95,7 @@ export function Readout({
 export const ReadoutCaption = styled.span`
   font-size: var(--font-size-caption);
   font-weight: 400;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   color: var(--color-text-muted);
   text-transform: uppercase;
 `;

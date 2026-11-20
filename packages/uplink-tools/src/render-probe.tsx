@@ -31,7 +31,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { StreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
-  harnessTheme,
+  harnessThemeFull,
   installRealTestHost,
   MockDataSource,
   setupStreamFixture,
@@ -88,7 +88,7 @@ import {
  *
  * It lives here rather than in `@ksp-gonogo/sitrep-sdk` because a scene's mount
  * is this package's providers (`WidgetHost`, `Panel`, `AugmentSlot`,
- * `DomainAvailabilityProvider`, `harnessTheme`), ui-kit imports the sdk, and
+ * `DomainAvailabilityProvider`, `harnessThemeFull`), ui-kit imports the sdk, and
  * the sdk cannot import them back.
  *
  * It reaches the kit through its own package name rather than relative paths.
@@ -1188,7 +1188,7 @@ async function renderScene(
   mounted.root.render(
     createElement(
       ThemeProvider,
-      { theme: harnessTheme },
+      { theme: harnessThemeFull },
       createElement(
         fixture.Provider,
         null,

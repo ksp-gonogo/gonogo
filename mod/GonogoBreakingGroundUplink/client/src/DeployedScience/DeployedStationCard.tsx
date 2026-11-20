@@ -198,7 +198,7 @@ export function DeployedStationCard({ listing }: { listing: StationListing }) {
     >
       <Stack>
         <Cluster justify="start" wrap>
-          <Text size="sm" style={{ fontWeight: 600 }}>
+          <Text size="sm" style={{ fontWeight: "var(--font-weight-semibold)" }}>
             {heading}
           </Text>
           {station?.body && (

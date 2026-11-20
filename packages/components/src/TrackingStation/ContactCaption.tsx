@@ -4,7 +4,7 @@ import type { TrackingStationVesselStatusEntry } from "./vesselStatusContributio
 export const FRAME_CAPTION: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
-  letterSpacing: "0.05em",
+  letterSpacing: "calc(0.05em * var(--tracking-scale))",
   flex: "0 0 auto",
 };
 

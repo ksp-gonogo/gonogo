@@ -31,7 +31,7 @@ export function Divider({ space, ...rest }: DividerProps) {
 
 const Divider__Root = styled.hr<{ $space?: GapToken }>`
   border: 0;
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: var(--border-width-hairline) solid var(--color-border-subtle);
   width: 100%;
   margin: ${({ $space }) => ($space ? `${GAP_VAR[$space]} 0` : "0")};
 `;

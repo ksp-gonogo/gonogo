@@ -1542,7 +1542,7 @@ const VANTAGE_OPTIONS: readonly { vantage: AlarmVantage; label: string }[] = [
 const KindRow = styled.div`
   display: flex;
   gap: var(--gap-related);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   padding: var(--inset-segment-track);
   background: var(--color-surface-sunken);
@@ -1589,7 +1589,7 @@ const OpSelect = styled.select`
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-go-text);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
 `;
 
@@ -1612,8 +1612,8 @@ const PresetSummary = styled.button`
   border: none;
   padding: 0;
   font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
   cursor: pointer;
@@ -1645,7 +1645,7 @@ const PresetButton = styled.button`
   text-align: left;
   padding: var(--inset-control);
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-surface-raised);
+  border: var(--border-width-hairline) solid var(--color-surface-raised);
   border-radius: var(--radius-regular);
   cursor: pointer;
   &:disabled {
@@ -1693,7 +1693,7 @@ const ALARM_TONE: Record<Alarm["state"], Tone> = {
 const StateTag = styled.span<{ $state: Alarm["state"] }>`
   text-transform: uppercase;
   font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: ${(p) =>
     p.$state === "firing"
       ? "var(--color-nogo-mark)"
@@ -1716,7 +1716,7 @@ const FireChip = styled.span`
   gap: var(--gap-related);
   padding: var(--inset-chip);
   background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   font-size: var(--font-size-compact);
   color: var(--color-text-muted);
@@ -1742,6 +1742,6 @@ const PickerSelect = styled.select`
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-go-text);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
 `;

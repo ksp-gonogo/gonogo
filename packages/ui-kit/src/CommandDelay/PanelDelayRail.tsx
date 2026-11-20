@@ -782,8 +782,8 @@ const PanelDelayRail__Summaries = styled.span`
   font-size: var(--font-size-compact);
   /* Flush, so single-line chrome text fits the reserved band on a coarse pointer too. */
   line-height: var(--line-height-flush);
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   white-space: nowrap;
   pointer-events: none;
 `;
@@ -804,7 +804,7 @@ const PanelDelayRail__CollapseHint = styled.span`
   right: var(--gutter-panel);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   pointer-events: auto;
   cursor: pointer;

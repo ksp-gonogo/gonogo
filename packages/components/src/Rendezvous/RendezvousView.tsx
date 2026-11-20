@@ -11,8 +11,8 @@ export function TargetPanel({ children }: { children: ReactNode }) {
 // Display tier above the type scale; DisplayDash must stay equal to this.
 export const DISPLAY_VALUE_STYLE = {
   fontSize: 22,
-  fontWeight: 600,
-  letterSpacing: "0.02em",
+  fontWeight: "var(--font-weight-semibold)",
+  letterSpacing: "calc(0.02em * var(--tracking-scale))",
   lineHeight: "var(--line-height-tight)",
 } as const;
 
@@ -22,7 +22,7 @@ export function DisplayDash() {
     <span
       style={{
         fontSize: 22,
-        fontWeight: 600,
+        fontWeight: "var(--font-weight-semibold)",
         color: "var(--color-text-faint)",
       }}
     >

@@ -129,7 +129,12 @@ function ScaleBar({
         <Text size="xs" level="muted">
           {lengthLabel(length)}
         </Text>
-        <div style={{ borderTop: "2px solid var(--color-text-muted)" }} />
+        <div
+          style={{
+            borderTop:
+              "var(--border-width-strong) solid var(--color-text-muted)",
+          }}
+        />
       </div>
     </Tooltip>
   );

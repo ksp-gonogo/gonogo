@@ -209,7 +209,7 @@ export function TransferLayer({
                   style={{
                     textAlign: "center",
                     fontSize: 11 / zoom,
-                    fontWeight: 700,
+                    fontWeight: "var(--font-weight-bold)",
                     color: "var(--color-text-primary)",
                   }}
                 >

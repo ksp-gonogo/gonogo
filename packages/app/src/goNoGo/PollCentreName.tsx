@@ -23,7 +23,7 @@ const PollCentreName__Label = styled.span`
 
 const PollCentreName__Text = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: var(--color-text-muted);
   white-space: nowrap;
 `;

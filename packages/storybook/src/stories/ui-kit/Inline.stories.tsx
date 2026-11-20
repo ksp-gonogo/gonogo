@@ -74,7 +74,11 @@ export const Wrap: Story = {
   decorators: [
     (Story) => (
       <div
-        style={{ width: 200, border: "1px dashed var(--color-border-subtle)" }}
+        style={{
+          width: 200,
+          border:
+            "var(--border-width-hairline) dashed var(--color-border-subtle)",
+        }}
       >
         <Story />
       </div>

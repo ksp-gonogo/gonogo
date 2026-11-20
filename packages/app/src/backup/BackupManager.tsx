@@ -177,7 +177,7 @@ const ConfirmRow = styled.div`
   flex-wrap: wrap;
   gap: var(--gap-related);
   padding: var(--inset-confirm-bar);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
 `;

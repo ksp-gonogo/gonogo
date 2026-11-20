@@ -106,7 +106,7 @@ const STACKED_ROW_STYLE = {
 
 const CHIP_LABEL_STYLE = {
   color: "var(--color-text-faint)",
-  letterSpacing: "0.08em",
+  letterSpacing: "calc(0.08em * var(--tracking-scale))",
   textTransform: "uppercase",
   fontSize: "var(--font-size-caption)",
 } as const;

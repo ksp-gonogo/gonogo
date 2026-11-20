@@ -69,7 +69,7 @@ const PAIR: CSSProperties = {
 
 const LABEL: CSSProperties = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.12em",
+  letterSpacing: "calc(0.12em * var(--tracking-scale))",
   color: "var(--color-text-faint)",
 };
 

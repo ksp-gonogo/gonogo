@@ -59,8 +59,8 @@ const InactiveNotice__Reason = styled.div`
   overflow-wrap: break-word;
   color: var(--color-text-muted);
   font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
 `;
 
@@ -69,5 +69,5 @@ const InactiveNotice__Hint = styled.div`
   overflow-wrap: break-word;
   color: var(--color-text-faint);
   font-size: var(--font-size-caption);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 `;

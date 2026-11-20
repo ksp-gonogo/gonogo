@@ -382,13 +382,13 @@ describe("Row and menu item given a command", () => {
     expect(getComputedStyle(slotOf(item) as HTMLElement).position).toBe(
       "absolute",
     );
-    expect(getComputedStyle(item).borderTopWidth).toBe("1px");
+    const edgeWidth = getComputedStyle(item).borderTopWidth;
     await user.click(item);
     await act(async () => {
       fake.refuse("not now");
     });
     expect(item).toHaveAttribute("data-command-edge", "warn");
-    // The edge is the shared border-colour rule, on the item's own 1px border, so its box keeps its size.
-    expect(getComputedStyle(item).borderTopWidth).toBe("1px");
+    // The edge is the shared border-colour rule, on the item's own hairline border, so its box keeps its size.
+    expect(getComputedStyle(item).borderTopWidth).toBe(edgeWidth);
   });
 });

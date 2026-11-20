@@ -184,11 +184,11 @@ const ButtonGrid = styled.div`
 
 const MomentaryButton = styled.button`
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   padding: var(--inset-pad-button);
   cursor: pointer;
   user-select: none;
@@ -214,7 +214,7 @@ const MomentaryButton = styled.button`
 
 const Frame = styled.pre`
   background: var(--color-surface-app);
-  border: 1px solid var(--color-surface-raised);
+  border: var(--border-width-hairline) solid var(--color-surface-raised);
   border-radius: var(--radius-regular);
   color: var(--color-info-text);
   /* Both literal: this pre renders the device's 21x8 ASCII frame buffer, so

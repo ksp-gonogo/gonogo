@@ -274,7 +274,7 @@ const Wrap = styled.div`
 
 const inputStyles = `
   background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   color: var(--color-text-primary);
   font: inherit;
   padding: var(--inset-control);
@@ -305,10 +305,10 @@ const StyledTextarea = styled.textarea`
 `;
 
 const Popover = styled.div`
-  background: var(--color-surface-overlay, rgba(20, 22, 26, 0.96));
-  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-overlay, color-mix(in srgb, var(--color-alarm-overlay) 96%, transparent));
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-regular);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-menu);
   max-height: 240px;
   width: 280px;
   max-width: calc(100vw - 16px);
@@ -355,7 +355,7 @@ const OptKey = styled.span`
 const OptGroup = styled.span`
   font-size: var(--font-size-caption);
   color: var(--color-accent-fg);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   grid-column: 1 / -1;
 `;

@@ -457,7 +457,7 @@ describe("MapPoiLayer marker tidy", () => {
     renderLayer();
 
     const marker = screen.getByRole("button", { name: "LaunchPad" });
-    expect(marker.style.color).toContain("--color-text-primary");
+    expect(marker.style.color).toContain("--color-imagery-ksc");
     expect(marker.style.color).not.toContain("--color-accent-fg");
     expect(marker.querySelector("svg")).not.toBeNull();
   });

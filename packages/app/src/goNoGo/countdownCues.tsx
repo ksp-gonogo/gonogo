@@ -37,8 +37,8 @@ const Line = styled.span`
   align-items: baseline;
   gap: var(--gap-related);
   font-size: var(--font-size-figure);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: var(--color-warn-text);
   white-space: nowrap;
 `;
@@ -46,7 +46,7 @@ const Line = styled.span`
 const Action = styled.span`
   font-size: var(--font-size-caption);
   font-weight: 400;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   white-space: pre;
 `;
 

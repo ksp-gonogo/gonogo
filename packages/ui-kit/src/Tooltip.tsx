@@ -501,13 +501,13 @@ const Tooltip__Body = styled.div`
   translate: min(0px, calc(100vw - 100% - var(--offset-popover) - var(--tip-left, 0px)));
   padding: var(--inset-tooltip);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-floating);
-  box-shadow: var(--shadow-popover-drop) rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-popover);
   color: var(--color-text-primary);
   font-size: var(--font-size-caption);
   line-height: var(--line-height-body);
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   white-space: pre-line;
   user-select: text;
   cursor: text;

@@ -388,7 +388,7 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
 const Backdrop = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.72);
+  background: color-mix(in srgb, var(--color-shadow) 72%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -397,7 +397,7 @@ const Backdrop = styled.div`
 
 const Dialog = styled.div<{ $width?: string; $expanded?: boolean }>`
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-floating);
   min-width: min(320px, 100vw - 16px);
   max-width: ${({ $width }) => $width ?? "560px"};
@@ -407,7 +407,7 @@ const Dialog = styled.div<{ $width?: string; $expanded?: boolean }>`
   max-height: 80dvh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-modal);
   ${({ $expanded }) =>
     $expanded
       ? `
@@ -425,7 +425,7 @@ const DialogHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: var(--inset-modal-bar);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
   flex-shrink: 0;
 `;
 
@@ -476,7 +476,7 @@ const DialogFooter = styled.div`
   justify-content: flex-end;
   gap: var(--gap-control-row);
   padding: var(--inset-modal-bar);
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: var(--border-width-hairline) solid var(--color-border-subtle);
   flex-shrink: 0;
 `;
 

@@ -192,7 +192,7 @@ const ComposerBar__Row = styled.div<{ $blocked: boolean }>`
   gap: var(--gap-composer);
   padding: var(--inset-field);
   background: var(--color-surface-panel);
-  border: 1px solid
+  border: var(--border-width-hairline) solid
     ${({ $blocked }) =>
       $blocked
         ? "var(--color-nogo-text)"
@@ -223,7 +223,7 @@ const ComposerBar__Row = styled.div<{ $blocked: boolean }>`
 const ComposerBar__Prompt = styled.span`
   flex: 0 0 auto;
   color: var(--console-tone-fg, var(--color-accent-fg));
-  font-weight: bold;
+  font-weight: var(--font-weight-bold);
   margin-right: var(--gap-prompt-glyph);
 `;
 
@@ -265,8 +265,8 @@ const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`
   padding: var(--inset-chip);
   font-family: var(--font-family-mono);
   font-size: var(--font-size-caption);
-  font-weight: bold;
-  letter-spacing: 0.04em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   border-radius: var(--radius-regular);
 
   ${({ $blocked }) =>
@@ -274,11 +274,11 @@ const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`
       ? css`
           color: var(--color-nogo-on-status);
           background: var(--color-nogo-status);
-          border: 1px solid var(--color-nogo-on-status);
+          border: var(--border-width-hairline) solid var(--color-nogo-on-status);
         `
       : css`
           color: var(--color-text-muted);
           background: var(--color-surface-panel);
-          border: 1px solid var(--color-border-subtle);
+          border: var(--border-width-hairline) solid var(--color-border-subtle);
         `}
 `;

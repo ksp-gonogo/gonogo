@@ -435,7 +435,7 @@ const Wrap = styled.div`
 const Credit = styled.p`
   margin: var(--gap-footnote) 0 0;
   padding-top: var(--inset-footnote-rule);
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: var(--border-width-hairline) solid var(--color-border-subtle);
   font-size: var(--font-size-prose);
   color: var(--color-text-faint);
   line-height: var(--line-height-prose);
@@ -467,8 +467,8 @@ const ToolbarButtons = styled.div`
 const Heading = styled.h3`
   margin: 0;
   font-size: var(--font-size-value);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;
@@ -517,8 +517,8 @@ const PendingActions = styled.div`
 
 const Status = styled.span<{ $status: string }>`
   font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: ${({ $status }) =>
     $status === "connected"

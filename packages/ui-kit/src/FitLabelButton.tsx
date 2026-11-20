@@ -224,7 +224,7 @@ const FitLabelButton__Word = styled.span`
   white-space: nowrap;
   pointer-events: none;
   font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 `;
 
 const FitLabelButton__Icon = styled.span`

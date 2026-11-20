@@ -19,7 +19,7 @@ function linkStateLabel(reachable: boolean | null, held: boolean): string {
 const TERM_STYLE = {
   color: "var(--color-text-muted)",
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.05em",
+  letterSpacing: "calc(0.05em * var(--tracking-scale))",
 } as const;
 
 const DEFINITION_STYLE = {

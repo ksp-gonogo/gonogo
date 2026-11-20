@@ -118,7 +118,7 @@ const LIST: CSSProperties = {
 
 const ROW: CSSProperties = {
   padding: "var(--gap-related)",
-  borderLeft: "2px solid var(--color-border-subtle)",
+  borderLeft: "var(--border-width-strong) solid var(--color-border-subtle)",
 };
 
 // The border is a second cue beside the badge, so the marked row is not told apart by colour alone.
@@ -136,7 +136,7 @@ const ROW_HEAD: CSSProperties = {
   color: "var(--color-text-muted)",
 };
 
-const STAGE_NUMBER: CSSProperties = { fontWeight: "bold" };
+const STAGE_NUMBER: CSSProperties = { fontWeight: "var(--font-weight-bold)" };
 
 const PARTS: CSSProperties = {
   listStyle: "none",

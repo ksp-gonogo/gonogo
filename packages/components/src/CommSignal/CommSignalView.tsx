@@ -226,7 +226,7 @@ export function CommSignalComponent({
                   connected === false
                     ? "var(--color-nogo-text)"
                     : "var(--color-text-dim)",
-                letterSpacing: "0.04em",
+                letterSpacing: "calc(0.04em * var(--tracking-scale))",
               }}
             >
               {signalCaption({ noSignal, connected, centreLabel, hint })}
@@ -241,7 +241,7 @@ export function CommSignalComponent({
               style={{
                 fontSize: "var(--font-size-caption)",
                 color: TONE_TEXT_COLOR.warn,
-                letterSpacing: "0.04em",
+                letterSpacing: "calc(0.04em * var(--tracking-scale))",
               }}
             >
               No signal

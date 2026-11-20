@@ -71,7 +71,7 @@ const HintRegion = styled.div`
 
 const Chip = styled.div`
   padding: var(--inset-control);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);

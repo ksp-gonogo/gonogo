@@ -135,7 +135,7 @@ export {
 
 import type { CommandArgs, CommandId } from "../commands";
 
-export { harnessTheme } from "./theme";
+export { harnessTheme, harnessThemeFull } from "./theme";
 
 /**
  * A sent command's args, typed as the contract declares them for `command`. A

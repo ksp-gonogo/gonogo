@@ -68,12 +68,12 @@ const Wrap = styled.div`
   align-items: center;
   gap: var(--gap-section);
   padding: var(--inset-alert-band);
-  background: rgba(120, 30, 30, 0.92);
-  border: 1px solid var(--color-nogo-mark);
-  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-alarm-offline) 92%, transparent);
+  border: var(--border-width-hairline) solid var(--color-nogo-mark);
+  border-radius: var(--radius-banner);
   color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   max-width: 100%;
   animation: bannerSlideIn var(--duration-entrance) var(--ease-entrance) forwards;
   transform-origin: right center;
@@ -121,8 +121,8 @@ const Pulse = styled.span`
 
 const Label = styled.span`
   text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.14em * var(--tracking-scale));
 `;
 
 const List = styled.div`
@@ -139,7 +139,7 @@ const Entry = styled.div`
 
 const EntryName = styled.span`
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 `;
 
 const EntryStatus = styled.span`

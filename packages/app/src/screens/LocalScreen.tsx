@@ -303,7 +303,7 @@ const JoinedLocalScreen__Banner = styled.div`
   gap: var(--gap-related);
   padding: var(--inset-surface);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-warn-mark);
+  border: var(--border-width-hairline) solid var(--color-warn-mark);
   border-top: none;
   border-radius: 0 0 var(--radius-regular) var(--radius-regular);
 `;

@@ -284,7 +284,7 @@ const CommandList__Box = styled.div<{ $tone: OutcomeTone }>`
   align-items: flex-start;
   gap: var(--gap-glyph-box);
   padding: var(--inset-surface);
-  border: 1px solid ${({ $tone }) => TONE_MARK[$tone]};
+  border: var(--border-width-hairline) solid ${({ $tone }) => TONE_MARK[$tone]};
   border-radius: var(--radius-regular);
   background: ${({ $tone }) =>
     `color-mix(in srgb, ${TONE_MARK[$tone]} 18%, var(--color-surface-raised))`};
@@ -301,9 +301,9 @@ const CommandList__Glyph = styled.span<{ $tone: OutcomeTone }>`
   padding: var(--inset-glyph);
   align-self: stretch;
   font-size: var(--font-size-xs);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: ${({ $tone }) => TONE_TEXT[$tone]};
-  border: 1px solid ${({ $tone }) => TONE_MARK[$tone]};
+  border: var(--border-width-hairline) solid ${({ $tone }) => TONE_MARK[$tone]};
   border-radius: var(--radius-regular);
   background: ${({ $tone }) =>
     `color-mix(in srgb, ${TONE_MARK[$tone]} 14%, var(--color-surface-raised))`};
@@ -314,7 +314,7 @@ const CommandList__Label = styled.span<{ $tone: OutcomeTone }>`
   flex: 0 0 auto;
   align-self: center;
   font-size: var(--font-size-compact);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: ${({ $tone }) => TONE_TEXT[$tone]};
 `;
 

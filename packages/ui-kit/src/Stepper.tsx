@@ -232,7 +232,7 @@ const StepperWord = styled.span`
   }
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 `;
 
 /* With a reason to give, aria-disabled and not disabled, so a dimmed step keeps focus and its reason can be reached. */
@@ -437,7 +437,7 @@ const Stepper__Value = styled.div`
   color: var(--color-text-primary);
   padding: var(--inset-stepper);
   border-radius: var(--radius-regular);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   background: var(--color-surface-sunken);
   white-space: nowrap;
   ${commandEdge}

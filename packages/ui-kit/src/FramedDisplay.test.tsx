@@ -205,8 +205,10 @@ const TILES = [
 ] as const;
 
 function frameBorderPx(frame: HTMLElement): number {
-  const match = /border:(\d+)px/.exec(emittedRuleFor(frame));
-  if (!match) throw new Error("FramedDisplay's rule carries no px border");
+  const rule = emittedRuleFor(frame);
+  if (/border:var\(--border-width-hairline\)/.test(rule)) return 1;
+  const match = /border:(\d+)px/.exec(rule);
+  if (!match) throw new Error("FramedDisplay's rule carries no border width");
   return Number(match[1]);
 }
 

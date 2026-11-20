@@ -146,7 +146,12 @@ function degrees(v: number | null | undefined, decimals: number): ReactNode {
 /** The faint letters before a figure that its unit alone does not name. */
 function FigureTag({ children }: { children: string }) {
   return (
-    <ReadoutCaption style={{ marginRight: 4, letterSpacing: "0.08em" }}>
+    <ReadoutCaption
+      style={{
+        marginRight: 4,
+        letterSpacing: "calc(0.08em * var(--tracking-scale))",
+      }}
+    >
       {children}
     </ReadoutCaption>
   );
@@ -473,7 +478,7 @@ function OverlayRows({
           ? {}
           : {
               background: "var(--color-surface-sunken)",
-              borderRadius: 3,
+              borderRadius: "var(--radius-regular)",
               padding: "var(--inset-figure-backing)",
               boxSizing: "border-box",
             }),
@@ -483,7 +488,7 @@ function OverlayRows({
         <span
           style={{
             background: "var(--color-surface-sunken)",
-            borderRadius: 3,
+            borderRadius: "var(--radius-regular)",
             padding: "var(--inset-figure-backing)",
             boxDecorationBreak: "clone",
             WebkitBoxDecorationBreak: "clone",
@@ -571,7 +576,7 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
         size="sm"
         tone={reading.outOfContact ? undefined : "go"}
         level="muted"
-        style={{ fontWeight: 600 }}
+        style={{ fontWeight: "var(--font-weight-semibold)" }}
       >
         {docking ? (
           <Unit
@@ -589,7 +594,7 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
   // The modelled figure is more of the range, drawn only where there is room beside it, so it never hides the range itself.
   const rangeTail =
     distance === undefined || docking ? null : (
-      <Text size="sm" style={{ fontWeight: 600 }}>
+      <Text size="sm" style={{ fontWeight: "var(--font-weight-semibold)" }}>
         <ModelledAlongside
           observed={rangeR.value}
           modelled={
@@ -611,7 +616,10 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
     layout.diameter === 0 || layout.large.y - layout.diameter / 2 >= ROW_HEIGHT;
   const nameSmall = <Text size="xs">{name}</Text>;
   const nameText = (
-    <Text size="sm" style={{ letterSpacing: "0.05em" }}>
+    <Text
+      size="sm"
+      style={{ letterSpacing: "calc(0.05em * var(--tracking-scale))" }}
+    >
       {name}
     </Text>
   );
@@ -732,7 +740,7 @@ function NoticeTag({ notice }: Readonly<{ notice: Notice }>) {
     <ReadoutCaption
       style={{
         background: "var(--color-surface-sunken)",
-        borderRadius: 3,
+        borderRadius: "var(--radius-regular)",
         padding: "var(--inset-chip)",
         pointerEvents: "auto",
       }}

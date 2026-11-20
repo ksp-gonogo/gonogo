@@ -5,8 +5,8 @@ import type { BurnConformance, BurnConformancePhase } from "./conformance";
 
 const PHASE_CHIP: CSSProperties = {
   fontSize: "var(--font-size-caption)",
-  fontWeight: 600,
-  letterSpacing: "0.08em",
+  fontWeight: "var(--font-weight-semibold)",
+  letterSpacing: "calc(0.08em * var(--tracking-scale))",
   textTransform: "uppercase",
 };
 

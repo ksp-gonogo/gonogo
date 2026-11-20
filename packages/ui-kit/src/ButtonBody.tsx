@@ -110,15 +110,15 @@ export const Button__Body = styled.button<{
   align-items: center;
   justify-content: center;
   gap: var(--gap-glyph-control);
-  border: 1px solid;
+  border: var(--border-width-hairline) solid;
   border-radius: var(--radius-regular);
   font-family: inherit;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   /* The kit's one control height, with a flush line height so type size cannot change the box height. */
   min-height: var(--control-height);
   line-height: var(--line-height-flush);
   cursor: pointer;
-  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
+  transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
 
   ${({ $size }) => SIZE_LOOK[$size]}
   ${({ $variant, $tone }) => variantLook($variant, $tone)}
@@ -207,7 +207,7 @@ export const IconButton__Body = styled.button`
   line-height: var(--line-height-flush);
   padding: var(--inset-glyph-button);
   border-radius: var(--radius-regular);
-  transition: background var(--duration-fast), box-shadow var(--duration-fast), color var(--duration-fast);
+  transition: background var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
 
   /* A target of at least 24 by 24 on a fine pointer, whatever size the caller draws the glyph at; a coarse pointer already gets the touch target. */
   @media (pointer: fine) {

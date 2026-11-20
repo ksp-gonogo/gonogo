@@ -389,7 +389,7 @@ const ListenDot = styled.span`
   height: 8px;
   border-radius: var(--radius-circle);
   background: var(--color-info-mark);
-  box-shadow: 0 0 6px rgba(124, 204, 255, 0.7);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-diagram-signal-live) 70%, transparent);
 
   @media (prefers-reduced-motion: no-preference) {
     /* 1.2s is physical, not a UI transition: the three listening pulses across

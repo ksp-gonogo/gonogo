@@ -128,15 +128,15 @@ export const SectionTitle = styled.div<{
 }>`
   margin: 0;
   font-size: var(--font-size-value);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
   ${({ $rule }) =>
     $rule
       ? `
   padding-bottom: var(--gap-title-rule);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
 `
       : ""}
 `;

@@ -298,7 +298,7 @@ const CONTROL_WRAP: CSSProperties = {
   flexDirection: "column",
   gap: "var(--gap-related)",
   paddingTop: "var(--inset-below-rule)",
-  borderTop: "1px solid var(--color-border-subtle)",
+  borderTop: "var(--border-width-hairline) solid var(--color-border-subtle)",
 };
 
 const GROUP: CSSProperties = {
@@ -309,7 +309,7 @@ const GROUP: CSSProperties = {
 
 const GROUP_LABEL: CSSProperties = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.12em",
+  letterSpacing: "calc(0.12em * var(--tracking-scale))",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",
 };

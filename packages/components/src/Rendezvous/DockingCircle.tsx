@@ -148,8 +148,9 @@ export function DockingCircle({
           flex: 1,
           minHeight: 0,
           minWidth: 0,
+          // The strengths are whole 8-bit alphas (20/255, 77/255): a gradient mixes unquantised alphas to different pixels than the stops it replaces.
           background:
-            "radial-gradient(circle at center, rgba(0, 255, 136, 0.08) 0%, rgba(0, 0, 0, 0.3) 70%)",
+            "radial-gradient(circle at center, color-mix(in srgb, var(--color-accent-fg) 7.8431%, transparent) 0%, color-mix(in srgb, var(--color-shadow) 30.1961%, transparent) 70%)",
         }}
       >
         {drawn && (!cleared || docked) && (

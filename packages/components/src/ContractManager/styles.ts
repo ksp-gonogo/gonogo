@@ -1,6 +1,6 @@
 export const SUMMARY_STYLE = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.06em",
+  letterSpacing: "calc(0.06em * var(--tracking-scale))",
   color: "var(--color-text-muted)",
   fontVariantNumeric: "tabular-nums",
 } as const;
@@ -30,7 +30,7 @@ export function cardListStyle(multiColumn: boolean) {
 
 export const SECTION_LABEL_STYLE = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.12em",
+  letterSpacing: "calc(0.12em * var(--tracking-scale))",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",
   marginTop: "var(--gap-list-heading)",
@@ -65,7 +65,7 @@ export const DEADLINE_STYLE = {
 export const AGENCY_STYLE = {
   color: "var(--color-text-muted)",
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.06em",
+  letterSpacing: "calc(0.06em * var(--tracking-scale))",
 } as const;
 
 /* A tight row gap keeps a wrapped third reward close under the first line. */
@@ -83,13 +83,13 @@ export const REWARD_STYLE = {
 
 export const REWARD_LABEL_STYLE = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.1em",
+  letterSpacing: "calc(0.1em * var(--tracking-scale))",
   color: "var(--color-text-faint)",
 } as const;
 
 export const REWARD_VALUE_STYLE = {
   fontSize: "var(--font-size-value)",
-  fontWeight: 600,
+  fontWeight: "var(--font-weight-semibold)",
   color: "var(--color-accent-fg)",
   fontVariantNumeric: "tabular-nums",
 } as const;

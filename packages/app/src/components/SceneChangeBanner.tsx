@@ -133,11 +133,11 @@ const Banner = styled.div`
   align-items: center;
   gap: var(--gap-related);
   padding: var(--inset-banner);
-  background: rgba(0, 0, 0, 0.88);
-  border: 1px solid var(--color-accent-fg);
+  background: color-mix(in srgb, var(--color-scrim) 88%, transparent);
+  border: var(--border-width-hairline) solid var(--color-accent-fg);
   border-radius: var(--radius-pill);
   font-size: var(--font-size-compact);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: var(--color-text-primary);
   pointer-events: none;
   max-width: 100%;
@@ -173,7 +173,7 @@ const BannerScene = styled.span<{ $emphasis?: boolean }>`
   color: ${(p) =>
     p.$emphasis ? "var(--color-accent-fg)" : "var(--color-text-muted)"};
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   font-size: var(--font-size-caption);
 `;
 

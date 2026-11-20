@@ -66,10 +66,10 @@ const Wrap = styled.div<{ $bottom: number | undefined }>`
   display: inline-flex;
   align-items: stretch;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-info-mark);
+  border: var(--border-width-hairline) solid var(--color-info-mark);
   /* --radius-pill holds at both the 40px height and the coarse-pointer 48px. */
   border-radius: var(--radius-pill);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-fab);
   overflow: hidden;
   font-family: inherit;
   /* Not the entrance recipe: that pairing is tuned to the 40px banner slide. */
@@ -102,8 +102,8 @@ const Accept = styled.button`
   color: var(--color-info-text);
   font-family: inherit;
   font-size: var(--font-size-compact);
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   padding: var(--inset-prompt-button);
   cursor: pointer;
   display: inline-flex;

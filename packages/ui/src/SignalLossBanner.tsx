@@ -39,7 +39,7 @@ export function SignalLossBanner({
   return (
     <BannerPill
       accent={SEVERITY_COLOR[state]}
-      glow="0 0 12px rgba(255, 59, 48, 0.35)"
+      glow="0 0 12px color-mix(in srgb, var(--color-diagram-danger) 35%, transparent)"
       pulse
     >
       <Label>{label}</Label>
@@ -57,10 +57,10 @@ const SEVERITY_COLOR: Record<"lost" | "partial", string> = {
 };
 
 const Label = styled.span`
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 `;
 
 const Timer = styled.span`
   color: var(--color-text-primary);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 `;

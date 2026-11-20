@@ -52,11 +52,11 @@ const Toggle = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 204, 102, 0.3);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--color-diagram-power) 30%, transparent);
   z-index: var(--z-fab);
   transition:
-    background var(--duration-base),
-    transform var(--duration-fast);
+    background var(--duration-base) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
 
   &:hover {
     background: var(--color-accent-bg);

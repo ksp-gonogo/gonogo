@@ -64,7 +64,7 @@ const BarTrack__Track = styled.div`
   width: 100%;
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   overflow: hidden;
   /* Positioned for the fill only: this overflow rounds the fill's ends and would clip any mark drawn over it. */
   position: relative;

@@ -10,7 +10,7 @@ function VesselCard() {
     <div
       style={{
         padding: "var(--inset-popover)",
-        border: "1px solid var(--color-border-strong)",
+        border: "var(--border-width-hairline) solid var(--color-border-strong)",
         borderRadius: "var(--radius-regular)",
         background: "var(--color-surface-raised)",
         color: "var(--color-text-primary)",

@@ -1,7 +1,7 @@
 import { registerDataSource, ScreenProvider } from "@ksp-gonogo/core";
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  harnessTheme,
+  harnessThemeFull,
   installRealTestHost,
   type StreamFixture,
   setupStreamFixture,
@@ -812,7 +812,7 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
 
   root = createRoot(mount);
   root.render(
-    <ThemeProvider theme={harnessTheme}>
+    <ThemeProvider theme={harnessThemeFull}>
       <div
         style={{
           display: "flex",

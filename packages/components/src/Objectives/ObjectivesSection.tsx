@@ -140,7 +140,7 @@ const OPTIONAL: CSSProperties = {
 const SOURCED: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
-  letterSpacing: "0.03em",
+  letterSpacing: "calc(0.03em * var(--tracking-scale))",
 };
 
 const DESC: CSSProperties = {

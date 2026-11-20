@@ -97,7 +97,7 @@ const PanelStatusDot__Count = styled.span<{ $fill: string; $ink: string }>`
   /* Below the --font-size-2xs floor, which would not fit the 8px dot. */
   font-size: inherit;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   line-height: var(--line-height-flush);
 `;
 

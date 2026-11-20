@@ -6,7 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import {
-  harnessTheme,
+  harnessThemeFull,
   installRealTestHost,
   type StreamFixture,
   setupStreamFixture,
@@ -34,6 +34,7 @@ import { FirstRunSetup } from "../../src/firstRun/FirstRunSetup";
 import { SettingsProvider } from "../../src/settings/SettingsContext";
 import { SettingsModal } from "../../src/settings/SettingsModal";
 import { SettingsService } from "../../src/settings/SettingsService";
+import { ThemeHost } from "../../src/theme/ThemeHost";
 import {
   __resetUplinkOutcomes,
   setUplinkOutcome,
@@ -98,6 +99,8 @@ interface Scene {
   fab?: boolean;
   /** Draw this first-run setup step instead of the settings modal. */
   setup?: "recommended" | "delay";
+  /** The id of the theme this device has chosen, as Settings stores it. */
+  theme?: string;
 }
 
 const FAB_LABELS = [
@@ -204,33 +207,38 @@ async function renderScene(scene: Scene): Promise<void> {
     service.set(id, v);
   }
 
+  if (scene.theme) localStorage.setItem("gonogo.theme", scene.theme);
+  else localStorage.removeItem("gonogo.theme");
+
   root = createRoot(host);
   root.render(
-    <ThemeProvider theme={harnessTheme}>
-      <ScreenProvider value={scene.screen ?? "main"}>
-        <SettingsProvider service={service}>
-          <SerialDeviceProvider
-            service={new SerialDeviceService({ screenKey: "render-probe" })}
-          >
-            <mounted.Provider>
-              {scene.fab ? (
-                <FabScene />
-              ) : scene.setup ? (
-                <FirstRunSetup initialStep={scene.setup} />
-              ) : scene.modal ? (
-                <ModalProvider>
-                  <OpenSettings
-                    tab={scene.tab ?? "general"}
-                    screen={scene.screen ?? "main"}
-                  />
-                </ModalProvider>
-              ) : (
-                <SettingsModal initialTabId={scene.tab ?? "general"} />
-              )}
-            </mounted.Provider>
-          </SerialDeviceProvider>
-        </SettingsProvider>
-      </ScreenProvider>
+    <ThemeProvider theme={harnessThemeFull}>
+      <ThemeHost>
+        <ScreenProvider value={scene.screen ?? "main"}>
+          <SettingsProvider service={service}>
+            <SerialDeviceProvider
+              service={new SerialDeviceService({ screenKey: "render-probe" })}
+            >
+              <mounted.Provider>
+                {scene.fab ? (
+                  <FabScene />
+                ) : scene.setup ? (
+                  <FirstRunSetup initialStep={scene.setup} />
+                ) : scene.modal ? (
+                  <ModalProvider>
+                    <OpenSettings
+                      tab={scene.tab ?? "general"}
+                      screen={scene.screen ?? "main"}
+                    />
+                  </ModalProvider>
+                ) : (
+                  <SettingsModal initialTabId={scene.tab ?? "general"} />
+                )}
+              </mounted.Provider>
+            </SerialDeviceProvider>
+          </SettingsProvider>
+        </ScreenProvider>
+      </ThemeHost>
     </ThemeProvider>,
   );
 

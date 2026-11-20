@@ -120,10 +120,10 @@ const BOX_BORDER: Record<BoxState, string> = {
   none: "var(--color-border-strong)",
 };
 const BOX_BG: Record<BoxState, string> = {
-  go: "rgba(40, 160, 80, 0.2)",
-  "no-go": "rgba(160, 40, 40, 0.2)",
-  abort: "rgba(200, 40, 40, 0.4)",
-  none: "rgba(50, 50, 50, 0.25)",
+  go: "color-mix(in srgb, var(--color-poll-go) 20%, transparent)",
+  "no-go": "color-mix(in srgb, var(--color-poll-no-go) 20%, transparent)",
+  abort: "color-mix(in srgb, var(--color-poll-abort) 40%, transparent)",
+  none: "color-mix(in srgb, var(--color-poll-none) 25%, transparent)",
 };
 const BOX_COLOR: Record<BoxState, string> = {
   go: "var(--color-go-text)",
@@ -149,7 +149,7 @@ const StationBox = styled.div<{ $state: BoxState }>`
   max-width: 14rem;
   padding: var(--inset-control-compact);
   border-radius: var(--radius-regular);
-  border: 1px solid ${({ $state }) => BOX_BORDER[$state]};
+  border: var(--border-width-hairline) solid ${({ $state }) => BOX_BORDER[$state]};
   background: ${({ $state }) => BOX_BG[$state]};
   color: ${({ $state }) => BOX_COLOR[$state]};
   line-height: var(--line-height-flush);
@@ -163,7 +163,7 @@ const BoxName = styled.span`
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 `;
 
 const BoxVote = styled.span`
@@ -172,14 +172,14 @@ const BoxVote = styled.span`
     visibility: hidden;
   }
   font-size: var(--font-size-value);
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.12em * var(--tracking-scale));
 `;
 
 /** What the poll last did: why a countdown was held, or whether the T-0 action was sent. */
 const PollNotice = styled(LiveRegion)`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: var(--color-warn-text);
 
   &:empty {

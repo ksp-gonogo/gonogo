@@ -248,7 +248,7 @@ export function KerbalBadges({ kerbal }: { kerbal: KerbalStatFields }) {
 
 const NAME_STYLE = {
   fontSize: "var(--font-size-value)",
-  fontWeight: 600,
+  fontWeight: "var(--font-weight-semibold)",
   color: "var(--color-text-primary)",
   minWidth: 0,
   overflow: "hidden",
@@ -269,7 +269,7 @@ const STAT_SYMBOL_STYLE = { color: "var(--color-text-muted)" } as const;
 
 const TRAIT_TAG_STYLE = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.06em",
+  letterSpacing: "calc(0.06em * var(--tracking-scale))",
   color: "var(--color-text-muted)",
   textTransform: "uppercase",
 } as const;

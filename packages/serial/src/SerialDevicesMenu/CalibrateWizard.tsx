@@ -391,7 +391,7 @@ const Wrap = styled.div`
   flex-direction: column;
   gap: var(--gap-section);
   padding: var(--inset-wizard);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
 `;
@@ -400,7 +400,7 @@ const Header = styled.h4`
   margin: 0;
   font-size: var(--font-size-caption);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: var(--color-text-faint);
 `;
 
@@ -476,7 +476,7 @@ const InputRow = styled.div<{ $active: boolean }>`
   gap: var(--gap-related);
   padding: var(--inset-wizard-box);
   border-radius: var(--radius-regular);
-  border: 1px solid
+  border: var(--border-width-hairline) solid
     ${({ $active }) =>
       $active ? "var(--color-info-mark)" : "var(--color-border-subtle)"};
   background: var(--color-surface-panel);
@@ -492,7 +492,7 @@ const InputLabel = styled.div`
 const InputKind = styled.span`
   font-size: var(--font-size-caption);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: var(--color-text-faint);
 `;
 

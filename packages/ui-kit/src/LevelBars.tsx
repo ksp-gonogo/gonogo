@@ -71,5 +71,5 @@ const LevelBars__Bar = styled.span<{ $fill: string | null; $height: number }>`
   width: 0.22em;
   height: ${({ $height }) => `${Math.round($height * 100)}%`};
   background: ${({ $fill }) => $fill ?? "transparent"};
-  border: 1px solid ${({ $fill }) => $fill ?? "var(--color-border-subtle)"};
+  border: var(--border-width-hairline) solid ${({ $fill }) => $fill ?? "var(--color-border-subtle)"};
 `;

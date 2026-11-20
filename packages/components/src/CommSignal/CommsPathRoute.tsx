@@ -214,7 +214,8 @@ function RailSlot({ stop }: { stop: boolean }) {
           left: RAIL_WIDTH_PX / 2 - 1,
           top: 0,
           bottom: 0,
-          borderLeft: "2px dashed var(--color-border-subtle)",
+          borderLeft:
+            "var(--border-width-strong) dashed var(--color-border-subtle)",
         }}
       />
       {stop && (
@@ -230,7 +231,7 @@ function RailSlot({ stop }: { stop: boolean }) {
             boxSizing: "border-box",
             borderRadius: "50%",
             background: "var(--color-surface-panel)",
-            border: "2px solid var(--color-text-dim)",
+            border: "var(--border-width-strong) solid var(--color-text-dim)",
           }}
         />
       )}

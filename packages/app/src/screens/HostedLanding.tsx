@@ -197,14 +197,14 @@ const Title = styled.h1`
   margin: 0;
   font-size: clamp(3rem, 12vw, 5rem);
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   color: var(--color-accent-fg);
 `;
 
 const Tagline = styled.p`
   margin: 0.5rem 0 0;
   font-size: clamp(1.1rem, 3.5vw, 1.5rem);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 `;
 
@@ -219,7 +219,7 @@ const Lede = styled.p`
 const SetupTitle = styled.h2`
   margin: 2.5rem 0 0.8rem;
   font-size: 1.25rem;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 `;
 
 const Steps = styled.ol`
@@ -233,7 +233,7 @@ const Steps = styled.ol`
 
 const Step = styled.li`
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-floating);
 
   code {
@@ -261,8 +261,8 @@ const Summary = styled.summary`
     grid-column: 3;
     width: 0.55rem;
     height: 0.55rem;
-    border-right: 2px solid var(--color-text-muted);
-    border-bottom: 2px solid var(--color-text-muted);
+    border-right: var(--border-width-strong) solid var(--color-text-muted);
+    border-bottom: var(--border-width-strong) solid var(--color-text-muted);
     transform: rotate(45deg) translate(-2px, -2px);
   }
 
@@ -282,16 +282,16 @@ const Num = styled.span`
   width: 1.8rem;
   height: 1.8rem;
   border-radius: var(--radius-circle);
-  border: 1px solid var(--color-accent-fg);
+  border: var(--border-width-hairline) solid var(--color-accent-fg);
   color: var(--color-accent-fg);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   font-size: 0.9rem;
 `;
 
 const What = styled.span`
   grid-column: 2;
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 `;
 
 const StepBody = styled.div`
@@ -327,7 +327,7 @@ const Notes = styled.ul`
 const Join = styled.p`
   margin: 1.5rem 0 0;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 `;
 
 const Fine = styled.footer`

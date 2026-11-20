@@ -104,7 +104,7 @@ const POPOVER_PANEL_STYLE = {
   maxWidth: "320px",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-raised)",
-  border: "1px solid var(--color-border-strong)",
+  border: "var(--border-width-hairline) solid var(--color-border-strong)",
   borderRadius: "var(--radius-regular)",
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-primary)",

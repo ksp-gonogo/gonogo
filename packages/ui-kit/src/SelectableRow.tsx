@@ -181,7 +181,7 @@ const SelectableRow__Word = styled.span`
     display: none;
   }
   font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 `;
 
 const SelectableRow__Root = styled.button<{
@@ -209,7 +209,7 @@ const SelectableRow__Root = styled.button<{
   text-align: left;
   padding: var(--inset-selectable-row);
   border-radius: ${RADIUS_VAR.regular};
-  border: 1px solid
+  border: var(--border-width-hairline) solid
     ${({ $selected, $look }) =>
       !$selected
         ? "var(--color-border-subtle)"

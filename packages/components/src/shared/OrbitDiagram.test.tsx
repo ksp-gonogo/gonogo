@@ -209,7 +209,7 @@ describe("OrbitDiagram projected overlay", () => {
     // The rotation marker is the only translucent white line.
     const lines = Array.from(container.querySelectorAll("line"));
     const rotationLine = lines.find((l) =>
-      (l.getAttribute("stroke") ?? "").includes("255, 255, 255"),
+      (l.getAttribute("stroke") ?? "").includes("--color-highlight"),
     );
     expect(rotationLine).toBeUndefined();
   });
@@ -220,7 +220,7 @@ describe("OrbitDiagram projected overlay", () => {
     );
     const lines = Array.from(container.querySelectorAll("line"));
     const rotationLine = lines.find((l) =>
-      (l.getAttribute("stroke") ?? "").includes("255, 255, 255"),
+      (l.getAttribute("stroke") ?? "").includes("--color-highlight"),
     );
     expect(rotationLine).toBeTruthy();
   });
@@ -240,7 +240,9 @@ describe("OrbitDiagram projected overlay", () => {
       <OrbitDiagram {...BASE} bodyRadius={600_000} atmosphereDepthM={70_000} />,
     );
     const isAtmoCircle = (el: Element) =>
-      (el.getAttribute("fill") ?? "").startsWith("rgba(220, 140, 60");
+      (el.getAttribute("fill") ?? "").includes(
+        "--color-diagram-atmosphere-inert",
+      );
     expect(
       Array.from(without.container.querySelectorAll("circle")).some(
         isAtmoCircle,

@@ -448,7 +448,7 @@ const EmptyPopover = styled.div`
   left: 0;
   min-width: 180px;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   z-index: var(--z-dropdown);
 `;

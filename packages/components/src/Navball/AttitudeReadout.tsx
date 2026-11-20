@@ -246,16 +246,16 @@ const READOUT_PAIR: CSSProperties = {
 
 const READOUT_LABEL: CSSProperties = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.12em",
+  letterSpacing: "calc(0.12em * var(--tracking-scale))",
   color: "var(--color-text-faint)",
 };
 
 const READOUT_VALUE: CSSProperties = {
   fontSize: "var(--font-size-figure)",
-  fontWeight: 700,
+  fontWeight: "var(--font-weight-bold)",
   color: "var(--color-text-primary)",
   fontVariantNumeric: "tabular-nums",
-  letterSpacing: "0.04em",
+  letterSpacing: "calc(0.04em * var(--tracking-scale))",
 };
 
 const LINES: CSSProperties = {

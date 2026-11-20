@@ -187,7 +187,7 @@ const FramedDisplay__Box = styled.div<{
   min-width: 0;
   /* Sunken: the visual sits inside the panel surface rather than floating on it. */
   background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   /* The container answers with a corner proportioned to the box, so a frame never needs to know its own size. */
   border-radius: ${({ $circle }) =>
     $circle ? "50%" : "var(--radius-display-frame)"};

@@ -23,7 +23,24 @@ export {
 } from "./DefaultThemeProvider";
 export { defaultDarkTheme } from "./defaultDarkTheme";
 export type {
+  ThemeAlarmColors,
+  ThemeBorderWidth,
   ThemeColors,
+  ThemeDensity,
+  ThemeDiagramColors,
+  ThemeElevation,
+  ThemeFloating,
+  ThemeImageryColors,
+  ThemeMarkerColors,
+  ThemeMotion,
+  ThemePalette,
+  ThemePollColors,
+  ThemeRadius,
+  ThemeShadow,
+  ThemeSizes,
+  ThemeSpace,
+  ThemeStatusColors,
+  ThemeTagColors,
   ThemeTypography,
   UiKitTheme,
 } from "./theme";

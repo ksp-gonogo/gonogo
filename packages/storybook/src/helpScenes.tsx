@@ -70,7 +70,7 @@ function Dialog({
         flexDirection: "column",
         gap: "var(--gap-related-comfortable)",
         padding: "1.5rem",
-        border: "1px solid var(--color-border-strong)",
+        border: "var(--border-width-hairline) solid var(--color-border-strong)",
         borderRadius: "var(--radius-floating)",
         background: "var(--color-surface-raised)",
       }}

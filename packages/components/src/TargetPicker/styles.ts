@@ -26,7 +26,7 @@ export const CurrentSummaryTop = styled.div`
 
 export const CurrentSummaryName = styled.span`
   font-size: var(--font-size-value);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-go-text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -47,7 +47,7 @@ export const CurrentSummaryMeta = styled.div`
   gap: var(--gap-headline);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 `;
 
 export const FilterBox = styled(SearchBox)`
@@ -73,7 +73,7 @@ export const ListBody = styled.div`
 
 export const SuggestedHeading = styled.div`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
   /* Shared with SectionHeading, so the heading and the toggle start on one left edge. */
@@ -93,7 +93,7 @@ export const SectionHeading = styled.div`
   flex: 1 0 auto;
   padding: var(--inset-list-heading);
   font-size: var(--font-size-compact);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
 `;
@@ -127,7 +127,7 @@ export const EntryName = styled.span`
 export const RowSubtitle = styled.span`
   font-size: var(--font-size-caption);
   color: currentColor;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   text-transform: uppercase;
 `;
 
@@ -156,8 +156,8 @@ export const RowMark = styled.span<{ $narrow?: boolean }>`
   align-items: center;
   justify-items: end;
   font-size: var(--font-size-compact);
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   &::before {
     content: ${({ $narrow }) => ($narrow ? "none" : '"TARGET"')};
     grid-area: 1 / 1;
@@ -170,8 +170,8 @@ export const RowMark = styled.span<{ $narrow?: boolean }>`
 
 export const RowTag = styled.span`
   font-size: var(--font-size-compact);
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: var(--color-go-text);
 `;
 
@@ -194,13 +194,13 @@ export const CompactCurrent = styled.div`
 
 export const CompactName = styled.div`
   font-size: var(--font-size-value);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 `;
 
 export const CompactDistance = styled.div`
   font-size: var(--font-size-compact);
   color: var(--color-accent-fg);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 `;

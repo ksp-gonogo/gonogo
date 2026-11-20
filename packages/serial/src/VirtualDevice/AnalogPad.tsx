@@ -88,7 +88,7 @@ const Wrap = styled.div`
 const Label = styled.span`
   font-size: var(--font-size-compact);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: var(--color-text-dim);
 `;
 
@@ -96,7 +96,7 @@ const Track = styled.div`
   position: relative;
   height: 24px;
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   cursor: pointer;
   touch-action: none;
@@ -121,7 +121,9 @@ const Thumb = styled.div<{ $active: boolean }>`
   background: ${({ $active }) => ($active ? "var(--color-accent-fg)" : "var(--color-info-mark)")};
   box-shadow: 0 0 6px
     ${({ $active }) =>
-      $active ? "rgba(0,255,136,0.5)" : "rgba(124,204,255,0.4)"};
+      $active
+        ? "color-mix(in srgb, var(--color-accent-fg) 50%, transparent)"
+        : "color-mix(in srgb, var(--color-diagram-signal-live) 40%, transparent)"};
   pointer-events: none;
 `;
 

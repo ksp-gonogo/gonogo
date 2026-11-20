@@ -62,7 +62,7 @@ const Banner = styled.div`
   left: 50%;
   transform: translate(-50%, -50%);
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   /* Shares --inset-pill with BannerPill: a message you read, not a control you press. */
   padding: var(--inset-pill);
@@ -79,8 +79,8 @@ const Banner = styled.div`
 
 const BannerMessage = styled.span`
   font-size: var(--font-size-compact);
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-primary);
 `;
@@ -88,5 +88,5 @@ const BannerMessage = styled.span`
 const BannerHint = styled.span`
   font-size: var(--font-size-caption);
   color: var(--color-text-faint);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 `;

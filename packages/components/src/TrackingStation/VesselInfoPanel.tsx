@@ -108,9 +108,9 @@ const WRAP: CSSProperties = {
 
 const TITLE: CSSProperties = {
   fontSize: "var(--font-size-value)",
-  fontWeight: 600,
+  fontWeight: "var(--font-weight-semibold)",
   color: "var(--color-text-primary)",
-  letterSpacing: "0.04em",
+  letterSpacing: "calc(0.04em * var(--tracking-scale))",
 };
 
 const ROWS: CSSProperties = {

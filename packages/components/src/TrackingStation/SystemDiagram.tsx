@@ -949,7 +949,7 @@ const VIEW_BUTTONS: CSSProperties = {
 
 const VIEW_BUTTON: CSSProperties = {
   background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-border-subtle)",
+  border: "var(--border-width-hairline) solid var(--color-border-subtle)",
   borderRadius: "var(--radius-regular)",
   padding: "var(--inset-control)",
   fontSize: "var(--font-size-compact)",

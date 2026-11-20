@@ -2,7 +2,7 @@
 export function Crosshair() {
   const line = {
     position: "absolute" as const,
-    background: "rgba(0, 255, 136, 0.75)",
+    background: "color-mix(in srgb, var(--color-accent-fg) 75%, transparent)",
   };
   return (
     <div
@@ -49,14 +49,14 @@ export function Reticle({
         position: "absolute",
         width: 22,
         height: 22,
-        border: `2px solid ${aligned ? "var(--color-accent-fg)" : "var(--color-warn-mark)"}`,
+        border: `var(--border-width-strong) solid ${aligned ? "var(--color-accent-fg)" : "var(--color-warn-mark)"}`,
         borderRadius: "var(--radius-circle)",
         transform: "translate(-50%, -50%)",
         // An instant telemetry chase for left/top; only the border colour eases.
         transition:
           "left var(--duration-instant) var(--ease-linear), top var(--duration-instant) var(--ease-linear), border-color var(--duration-base) var(--ease-linear)",
         // Ring only, so the crosshair stays visible.
-        boxShadow: `0 0 6px ${aligned ? "rgba(0,255,136,0.6)" : "rgba(255,152,0,0.5)"}`,
+        boxShadow: `0 0 6px ${aligned ? "color-mix(in srgb, var(--color-accent-fg) 60%, transparent)" : "color-mix(in srgb, var(--color-diagram-docking-misaligned) 50%, transparent)"}`,
         left,
         top,
       }}
@@ -70,7 +70,8 @@ export function HorizTick({ left }: { left: string }) {
     <div
       style={{
         position: "absolute",
-        background: "rgba(0, 255, 136, 0.35)",
+        background:
+          "color-mix(in srgb, var(--color-accent-fg) 35%, transparent)",
         pointerEvents: "none",
         top: "50%",
         width: 1,
@@ -87,7 +88,8 @@ export function VertTick({ top }: { top: string }) {
     <div
       style={{
         position: "absolute",
-        background: "rgba(0, 255, 136, 0.35)",
+        background:
+          "color-mix(in srgb, var(--color-accent-fg) 35%, transparent)",
         pointerEvents: "none",
         left: "50%",
         height: 1,

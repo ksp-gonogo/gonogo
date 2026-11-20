@@ -942,7 +942,7 @@ const Meter__Label = styled.span<{ $wrap?: boolean }>`
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   ${({ $wrap }) =>
     $wrap
       ? "overflow-wrap: anywhere;"
@@ -1033,8 +1033,8 @@ const Meter__Bound = styled.div`
   background: var(--color-text-primary);
   /* Inset and outset, so the mark keeps an edge against a light or saturated fill on either side of its end. */
   box-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.55),
-    inset 0 0 0 0.5px rgb(0 0 0 / 0.35);
+    0 0 0 1px color-mix(in srgb, var(--color-shadow) 55%, transparent),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--color-shadow) 35%, transparent);
   opacity: 0.62;
   pointer-events: none;
 `;

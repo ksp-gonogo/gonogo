@@ -47,9 +47,13 @@ describe("Value", () => {
         x
       </Text>,
     );
-    expect(screen.getByTestId("v")).toHaveStyle({ fontWeight: "600" });
+    expect(screen.getByTestId("v")).toHaveStyle({
+      fontWeight: "var(--font-weight-semibold)",
+    });
     rerender(<Text data-testid="v">x</Text>);
-    expect(screen.getByTestId("v")).not.toHaveStyle({ fontWeight: "600" });
+    expect(screen.getByTestId("v")).not.toHaveStyle({
+      fontWeight: "var(--font-weight-semibold)",
+    });
   });
 
   it("draws in the neutral text colour unless a caller chooses a tone", () => {

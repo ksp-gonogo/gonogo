@@ -106,14 +106,14 @@ const EDITOR_STYLE = {
   gap: "var(--gap-related)",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-border-subtle)",
+  border: "var(--border-width-hairline) solid var(--color-border-subtle)",
   borderRadius: "var(--radius-regular)",
 } as const;
 
 const EDITOR_TITLE_STYLE = {
   fontSize: "var(--font-size-caption)",
-  fontWeight: 700,
-  letterSpacing: "0.06em",
+  fontWeight: "var(--font-weight-bold)",
+  letterSpacing: "calc(0.06em * var(--tracking-scale))",
   textTransform: "uppercase",
   color: "var(--color-text-dim)",
 } as const;

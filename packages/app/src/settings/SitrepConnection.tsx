@@ -177,7 +177,7 @@ const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
   font-size: var(--font-size-caption);
   color: ${({ $status }) => statusColor[$status]};
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
 `;
 
 /* Type one rung down from the kit's Button, and nothing else: the inset it used
@@ -185,7 +185,7 @@ const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
    button whose height is pinned by --control-height either way. */
 const RetryButton = styled(Button).attrs({ variant: "ghost" })`
   font-size: var(--font-size-compact);
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   white-space: nowrap;
 `;
 
@@ -193,7 +193,7 @@ const SetupInstructions = styled.pre`
   margin: 0;
   padding: var(--inset-surface);
   background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   font-size: var(--font-size-prose);
   color: var(--color-text-faint);

@@ -82,7 +82,7 @@ const StatusIndicator__Row = styled.div<{ "data-tone": Tone }>`
   /* A boxed readout that sits in bars beside controls, so it takes the kit's one control height. */
   min-height: var(--control-height);
   background: var(--color-surface-raised);
-  border: 1px solid;
+  border: var(--border-width-hairline) solid;
   border-radius: var(--radius-regular);
 
   border-color: ${({ "data-tone": tone }) => toneEdge(tone)};

@@ -54,6 +54,8 @@ export interface BaseSurfaceInput {
     paper: string;
     alpha: number;
   } | null;
+  /** The dark wash laid over the stock texture, as a colour the context accepts. */
+  wash: string;
   /** Last-resort colour wash for bodies with no texture loaded yet. */
   bodyColor: string | undefined;
   /**
@@ -80,6 +82,7 @@ export function paintBaseSurface(
     textureImage,
     sketch = null,
     inkSketch = null,
+    wash,
     bodyColor,
     suppressVanilla,
     layers,
@@ -90,7 +93,7 @@ export function paintBaseSurface(
   if (sketch && !inkSketch) ctx.drawImage(sketch, 0, 0, worldW, worldH);
   if (sketch && inkSketch) paintInkSketch(ctx, inkSketch, worldW, worldH);
   if (!sketch && !suppressVanilla)
-    paintVanilla(ctx, textureImage, bodyColor, worldW, worldH);
+    paintVanilla(ctx, textureImage, wash, bodyColor, worldW, worldH);
 
   for (const layer of layers) {
     ctx.drawImage(layer.canvas, 0, 0, worldW, worldH);
@@ -123,13 +126,14 @@ function paintInkSketch(
 function paintVanilla(
   ctx: BaseSurfaceCtx,
   textureImage: CanvasImageSource | null,
+  wash: string,
   bodyColor: string | undefined,
   worldW: number,
   worldH: number,
 ): void {
   if (textureImage) {
     ctx.drawImage(textureImage, 0, 0, worldW, worldH);
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.fillStyle = wash;
     ctx.fillRect(0, 0, worldW, worldH);
     return;
   }

@@ -110,6 +110,69 @@ export const EXEMPT: Readonly<Record<string, string>> = {
     "a navball marker hue is the game's; the glyph's currentColor keyline carries its contrast",
   "marker-target":
     "a navball marker hue is the game's; the glyph's currentColor keyline carries its contrast",
+  "alarm-set":
+    "the ground of one banner or floating panel, which sets its own text; the table has no pairing for it",
+  "alarm-arm":
+    "the ground of one banner or floating panel, which sets its own text; the table has no pairing for it",
+  "alarm-fire":
+    "the ground of one banner or floating panel, which sets its own text; the table has no pairing for it",
+  "alarm-notice":
+    "the ground of one banner or floating panel, which sets its own text; the table has no pairing for it",
+  "alarm-offline":
+    "the ground of one banner or floating panel, which sets its own text; the table has no pairing for it",
+  "alarm-overlay":
+    "the ground of one banner or floating panel, which sets its own text; the table has no pairing for it",
+  "poll-go":
+    "a low-strength tint over the header, with the vote's own text and mark drawn on top",
+  "poll-no-go":
+    "a low-strength tint over the header, with the vote's own text and mark drawn on top",
+  "poll-abort":
+    "a low-strength tint over the header, with the vote's own text and mark drawn on top",
+  "poll-none":
+    "a low-strength tint over the header, with the vote's own text and mark drawn on top",
+  "diagram-orbit-burn":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-orbit-retro":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-atmosphere-oxygen":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-atmosphere-inert":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-encounter":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-flyby":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-impact":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-depth-above":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-depth-level":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-depth-below":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-docking-misaligned":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-signal-live":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-danger":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  "diagram-power":
+    "a diagram or glow hue drawn at partial strength over varied grounds, with shape carrying the meaning",
+  shadow:
+    "ink mixed to a strength where it is used, never drawn as a colour of its own",
+  highlight:
+    "ink mixed to a strength where it is used, never drawn as a colour of its own",
+  scrim:
+    "ink mixed to a strength where it is used, never drawn as a colour of its own",
+  "imagery-ksc": "a mark drawn over map imagery, which is dark in every theme",
+  "imagery-launch-site":
+    "a mark drawn over map imagery, which is dark in every theme",
+  "imagery-contract":
+    "a mark drawn over map imagery, which is dark in every theme",
+  "imagery-anomaly":
+    "a mark drawn over map imagery, which is dark in every theme",
+  "imagery-other":
+    "a mark drawn over map imagery, which is dark in every theme",
 };
 
 /**
@@ -245,13 +308,13 @@ export function contrastTable(tokens: readonly string[]): Pairing[] {
   return [...named, ...EXPLICIT_PAIRINGS];
 }
 
-const DECLARED = /--((?:color|palette)-[a-z0-9-]+):\s*([^;]+);/g;
+const DECLARED = /--((?:color|status)-[a-z0-9-]+):\s*([^;]+);/g;
 const HEX = /^#[0-9a-fA-F]{3,8}$/;
-const ALIAS = /^var\(--((?:color|palette)-[a-z0-9-]+)\)$/;
+const ALIAS = /^var\(--((?:color|status)-[a-z0-9-]+)\)$/;
 
 /**
  * Every `--color-*` token the sheet declares, keyed without the prefix, with
- * the hex value it resolves to. A token defined as `var(--palette-*)` or
+ * the hex value it resolves to. A token defined as `var(--status-*)` or
  * `var(--color-*)` resolves through the chain; one whose value is neither a
  * hex nor such an alias is left out.
  */

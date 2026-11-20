@@ -76,13 +76,13 @@ const Stat__Root = styled.dl`
   min-width: 0;
   padding: var(--inset-surface);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
 `;
 
 const Stat__Label = styled.dt`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
 `;
@@ -97,7 +97,7 @@ const Stat__Figure = styled.dd<{ $tone: Tone }>`
   flex-wrap: wrap;
   gap: var(--gap-figure-parts);
   font-size: var(--font-size-figure);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
   font-variant-numeric: tabular-nums;
   color: ${({ $tone }) => TONE_TEXT[$tone]};

@@ -13,7 +13,7 @@ export const Header = styled.div`
 export const BodyLabel = styled.span`
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
 `;
 
 /* A fixed height, so a tag appearing or going never moves the map below by a fraction of a pixel. */
@@ -43,7 +43,7 @@ export const CompactRow = styled.div`
 
 export const CompactLabel = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: var(--color-text-faint);
   /* The three-letter labels are as wide as each other, so no floor is needed to align them; a floor takes room the figure and its mark need on the narrowest tile. */
   flex-shrink: 0;
@@ -53,7 +53,7 @@ export const CompactLabel = styled.span`
 export const CompactValue = styled.span`
   /* Off the type scale: --font-size-base grows on a coarse pointer, and the figure never breaks. */
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   min-width: 0;
@@ -133,7 +133,7 @@ export const NoSignal = styled.div`
   justify-content: center;
   font-size: var(--font-size-caption);
   color: var(--color-text-faint);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   pointer-events: none;
 `;

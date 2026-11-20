@@ -175,14 +175,14 @@ const TOOLTIP: CSSProperties = {
   color: "var(--color-text-primary)",
   fontSize: "var(--font-size-compact)",
   padding: "var(--inset-surface)",
-  border: "1px solid var(--color-border-strong)",
+  border: "var(--border-width-hairline) solid var(--color-border-strong)",
   borderRadius: "var(--radius-regular)",
   pointerEvents: "none",
   minWidth: "140px",
 };
 
 const TOOLTIP_TITLE: CSSProperties = {
-  fontWeight: 600,
+  fontWeight: "var(--font-weight-semibold)",
   color: "var(--color-go-text)",
   marginBottom: "var(--gap-under-title)",
   wordBreak: "break-word",

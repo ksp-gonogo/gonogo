@@ -183,10 +183,10 @@ const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   /* --radius-pill keeps the stadium shape through a height change. */
   border-radius: var(--radius-pill);
   background: ${({ $checked }) => ($checked ? "var(--color-go-mark)" : "var(--color-surface-raised)")};
-  border: 1px solid ${({ $checked }) => ($checked ? "var(--color-go-mark)" : "var(--color-border-strong)")};
+  border: var(--border-width-hairline) solid ${({ $checked }) => ($checked ? "var(--color-go-mark)" : "var(--color-border-strong)")};
   position: relative;
   flex-shrink: 0;
-  transition: background var(--duration-base), border-color var(--duration-base);
+  transition: background var(--duration-base) var(--ease-standard), border-color var(--duration-base) var(--ease-standard);
   ${commandEdge}
 `;
 
@@ -204,7 +204,7 @@ const SwitchWord = styled.span`
   }
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 `;
 
 /* The input is invisible and sizeless, so its keyboard focus is drawn on the
@@ -230,12 +230,12 @@ const SwitchThumb = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   height: 8px;
   border-radius: var(--radius-circle);
   background: ${({ $checked }) => ($checked ? "var(--color-accent-fg)" : "var(--color-text-faint)")};
-  transition: left var(--duration-base), background var(--duration-base);
+  transition: left var(--duration-base) var(--ease-standard), background var(--duration-base) var(--ease-standard);
 `;
 
 const SwitchText = styled.span`
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
 `;

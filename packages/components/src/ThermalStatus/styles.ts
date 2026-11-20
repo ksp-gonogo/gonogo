@@ -15,7 +15,7 @@ export const ROW_HEADER_STYLE = {
 
 export const ROW_LABEL_STYLE = {
   fontSize: "var(--font-size-caption)",
-  letterSpacing: "0.1em",
+  letterSpacing: "calc(0.1em * var(--tracking-scale))",
   textTransform: "uppercase",
   color: "var(--color-text-dim)",
   minWidth: 0,
@@ -53,7 +53,7 @@ export function bandTagStyle(band: Band) {
   return {
     flexShrink: 0,
     fontSize: "var(--font-size-caption)",
-    letterSpacing: "0.1em",
+    letterSpacing: "calc(0.1em * var(--tracking-scale))",
     textTransform: "uppercase",
     whiteSpace: "nowrap",
     color: BAND_COLOR[band],

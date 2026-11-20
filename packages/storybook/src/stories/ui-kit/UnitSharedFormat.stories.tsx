@@ -45,7 +45,7 @@ function Heading({ children }: { children: ReactNode }) {
         color: "var(--color-text-muted)",
         fontSize: "var(--font-size-caption)",
         textTransform: "uppercase",
-        letterSpacing: "0.08em",
+        letterSpacing: "calc(0.08em * var(--tracking-scale))",
       }}
     >
       {children}

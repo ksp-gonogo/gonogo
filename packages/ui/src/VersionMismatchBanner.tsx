@@ -35,7 +35,7 @@ export function VersionMismatchBanner({
   return (
     <BannerPill
       accent={KIND_COLOR[kind]}
-      glow="0 0 12px rgba(0, 0, 0, 0.5)"
+      glow="0 0 12px color-mix(in srgb, var(--color-shadow) 50%, transparent)"
       role={role}
     >
       <Label>{label}</Label>
@@ -51,11 +51,11 @@ const KIND_COLOR: Record<VersionMismatchKind, string> = {
 };
 
 const Label = styled.span`
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 `;
 
 const Detail = styled.span`
   color: var(--color-text-primary);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: none;
 `;

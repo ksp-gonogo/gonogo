@@ -1,10 +1,10 @@
 // @vitest-environment node
-import { harnessTheme } from "@ksp-gonogo/sitrep-sdk/testing";
+import { harnessTheme, harnessThemeFull } from "@ksp-gonogo/sitrep-sdk/testing";
 import { defaultDarkTheme, type UiKitTheme } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 
 /**
- * `@ksp-gonogo/sitrep-sdk/testing`'s `harnessTheme` is a port of
+ * `@ksp-gonogo/sitrep-sdk/testing`'s `harnessThemeFull` is a port of
  * `@ksp-gonogo/theme`'s `defaultDarkTheme`, not a re-export: the sdk is the leaf
  * everything else depends on, so it can name neither `@ksp-gonogo/theme` (private)
  * nor `@ksp-gonogo/ui-kit` (which imports the sdk, so the edge would be a cycle).
@@ -38,6 +38,14 @@ type Leaf = readonly [path: string, value: unknown];
 const THEME_GROUPS = {
   colors: true,
   typography: true,
+  radius: true,
+  space: true,
+  sizes: true,
+  density: true,
+  elevation: true,
+  floating: true,
+  borderWidth: true,
+  motion: true,
 } as const satisfies Record<keyof UiKitTheme, true>;
 
 function leaves(node: unknown, path: string[] = []): Leaf[] {
@@ -59,7 +67,7 @@ function at(node: unknown, path: string): unknown {
     );
 }
 
-describe("sdk/testing harnessTheme conforms to the real theme", () => {
+describe("sdk/testing harnessThemeFull conforms to the real theme", () => {
   /**
    * The instrument check, before the comparison that could pass by finding
    * nothing. A walk that visits zero leaves reports perfect conformance, and a
@@ -70,15 +78,17 @@ describe("sdk/testing harnessTheme conforms to the real theme", () => {
     const reached = new Set(
       leaves(defaultDarkTheme).map(([path]) => path.split(".")[0]),
     );
-    expect([...reached].sort()).toEqual(Object.keys(THEME_GROUPS).sort());
+    /* The default theme states no shadow level: an unset level is what leaves each surface its own shadow. */
+    const stated = Object.keys(THEME_GROUPS).filter((g) => g !== "elevation");
+    expect([...reached].sort()).toEqual(stated.sort());
   });
 
   it("carries every leaf of defaultDarkTheme, byte for byte", () => {
     const drifted = leaves(defaultDarkTheme)
-      .filter(([path, real]) => at(harnessTheme, path) !== real)
+      .filter(([path, real]) => at(harnessThemeFull, path) !== real)
       .map(
         ([path, real]) =>
-          `${path}: real ${JSON.stringify(real)} vs harness ${JSON.stringify(at(harnessTheme, path))}`,
+          `${path}: real ${JSON.stringify(real)} vs harness ${JSON.stringify(at(harnessThemeFull, path))}`,
       );
     expect(
       drifted,
@@ -101,12 +111,21 @@ describe("sdk/testing harnessTheme conforms to the real theme", () => {
    * because it only walks the real one.
    */
   it("carries nothing the real theme does not", () => {
-    const extra = leaves(harnessTheme)
+    const extra = leaves(harnessThemeFull)
       .map(([path]) => path)
       .filter((path) => at(defaultDarkTheme, path) === undefined);
     expect(
       extra,
       "The sdk's harness theme has leaves the real theme no longer has: a token was renamed or removed upstream.",
     ).toEqual([]);
+  });
+
+  /** The earlier, narrower theme is kept so a test written against it still compiles, so it must still say what the full one says. */
+  it("keeps harnessTheme a copy of the part of the full theme it always held", () => {
+    const stale = leaves(harnessTheme)
+      .filter(([path, value]) => at(harnessThemeFull, path) !== value)
+      .map(([path]) => path);
+    expect(stale).toEqual([]);
+    expect(leaves(harnessTheme).length).toBeGreaterThan(15);
   });
 });

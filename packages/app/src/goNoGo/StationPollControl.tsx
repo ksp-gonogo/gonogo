@@ -168,7 +168,7 @@ const Centre = styled.div`
 /** What the poll last did: why a countdown was held, whether the T-0 action was sent, or who aborted. */
 const PollNotice = styled(LiveRegion)`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: var(--color-warn-text);
 
   &:empty {

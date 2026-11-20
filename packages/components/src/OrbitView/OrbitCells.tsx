@@ -9,7 +9,7 @@ export function OrbitLabel({ children }: { children: ReactNode }) {
       style={{
         fontSize: "var(--font-size-caption)",
         color: "var(--color-text-faint)",
-        letterSpacing: "0.08em",
+        letterSpacing: "calc(0.08em * var(--tracking-scale))",
         textTransform: "uppercase",
       }}
     >
@@ -78,7 +78,7 @@ export function OrbitValue({
     // Off-scale on purpose: a 13/12/10 ladder, and --font-size-sm would merge the base and narrow tiers.
     fontSize: smallerTierFontSize(tight, narrow) ?? "13px",
     color: accent ? ACCENT_COLOR[accent] : "var(--color-text-primary)",
-    letterSpacing: "0.03em",
+    letterSpacing: "calc(0.03em * var(--tracking-scale))",
     whiteSpace: "nowrap",
     minWidth: 0,
   };

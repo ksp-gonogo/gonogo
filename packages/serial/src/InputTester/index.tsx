@@ -277,7 +277,7 @@ const StatusRow = styled.div`
 
 const StatusLabel = styled.span`
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: var(--color-text-faint);
 `;
 
@@ -321,7 +321,7 @@ const AnalogTrack = styled.div`
   position: relative;
   height: 8px;
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: 4px;
 `;
 
@@ -354,7 +354,9 @@ const AnalogThumb = styled.div<{ $live: boolean }>`
   background: ${({ $live }) =>
     $live ? "var(--color-info-mark)" : "var(--color-text-faint)"};
   box-shadow: ${({ $live }) =>
-    $live ? "0 0 6px rgba(124, 204, 255, 0.6)" : "none"};
+    $live
+      ? "0 0 6px color-mix(in srgb, var(--color-diagram-signal-live) 60%, transparent)"
+      : "none"};
 `;
 
 const AnalogValue = styled.span<{ $live: boolean }>`
@@ -381,7 +383,7 @@ const ButtonPill = styled.div<{ $pressed: boolean }>`
   gap: var(--gap-related);
   padding: var(--inset-surface);
   border-radius: var(--radius-regular);
-  border: 1px solid
+  border: var(--border-width-hairline) solid
     ${({ $pressed }) =>
       $pressed ? "var(--color-info-mark)" : "var(--color-border-subtle)"};
   background: ${({ $pressed }) =>
@@ -403,7 +405,9 @@ const ButtonDot = styled.span<{ $pressed: boolean }>`
   background: ${({ $pressed }) =>
     $pressed ? "var(--color-info-mark)" : "var(--color-border-strong)"};
   box-shadow: ${({ $pressed }) =>
-    $pressed ? "0 0 6px rgba(124, 204, 255, 0.7)" : "none"};
+    $pressed
+      ? "0 0 6px color-mix(in srgb, var(--color-diagram-signal-live) 70%, transparent)"
+      : "none"};
 `;
 
 const ButtonName = styled.span`

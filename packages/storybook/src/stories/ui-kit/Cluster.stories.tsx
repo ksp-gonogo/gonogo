@@ -30,7 +30,12 @@ function Column({ children }: { children: ReactNode }) {
 /** A visible outline so the row's extent, and so its justification, can be seen. */
 function Outline({ children }: { children: ReactNode }) {
   return (
-    <div style={{ border: "1px dashed var(--color-border-subtle)" }}>
+    <div
+      style={{
+        border:
+          "var(--border-width-hairline) dashed var(--color-border-subtle)",
+      }}
+    >
       {children}
     </div>
   );

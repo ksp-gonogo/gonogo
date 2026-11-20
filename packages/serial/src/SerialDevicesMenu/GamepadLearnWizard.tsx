@@ -269,7 +269,7 @@ const Wrap = styled.div`
 const Progress = styled.div`
   font-size: var(--font-size-caption);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: var(--color-text-faint);
 `;
 
@@ -284,7 +284,7 @@ const PromptRow = styled.div`
 
 const PromptName = styled.span`
   font-size: var(--font-size-value);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 `;
 
@@ -306,7 +306,7 @@ const ListenDot = styled.span`
   height: 8px;
   border-radius: var(--radius-circle);
   background: var(--color-info-mark);
-  box-shadow: 0 0 6px rgba(124, 204, 255, 0.7);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-diagram-signal-live) 70%, transparent);
   flex-shrink: 0;
 
   @media (prefers-reduced-motion: no-preference) {

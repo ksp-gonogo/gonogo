@@ -136,8 +136,8 @@ export function QuickloadBanner() {
 const Banner = styled.div`
   display: inline-flex;
   padding: var(--inset-banner);
-  background: rgba(0, 0, 0, 0.88);
-  border: 1px solid var(--color-accent-fg);
+  background: color-mix(in srgb, var(--color-scrim) 88%, transparent);
+  border: var(--border-width-hairline) solid var(--color-accent-fg);
   border-radius: var(--radius-pill);
   font-size: var(--font-size-compact);
 `;

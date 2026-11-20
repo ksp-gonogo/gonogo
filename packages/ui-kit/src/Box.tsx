@@ -98,7 +98,7 @@ const Box__Root = styled.div<{
   $radius?: BoxRadius;
 }>`
   ${({ $surface }) => $surface && `background: ${SURFACE_VAR[$surface]};`}
-  ${({ $bordered }) => $bordered && `border: 1px solid var(--color-border-subtle);`}
+  ${({ $bordered }) => $bordered && `border: var(--border-width-hairline) solid var(--color-border-subtle);`}
   ${({ $radius }) => $radius && `border-radius: ${RADIUS_VAR[$radius]};`}
   ${({ $pad }) => $pad && `padding: var(${INSET_NAME[$pad]});`}
 `;

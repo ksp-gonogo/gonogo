@@ -82,6 +82,12 @@ const EXCEPTIONS: Exception[] = [
       "The ladders themselves. Every rung in this file is a literal by definition, and flagging them would be flagging the answer as the offence. The rest of packages/theme/src IS scanned: defaultDarkTheme.ts held its own raw px for space and radii long after the migration precisely because the whole package used to be excluded, so the exclusion is now the one file rather than the directory.",
   },
   {
+    path: "packages/ui/src/themes/dense.ts",
+    families: ["spacing"],
+    reason:
+      "A theme states lengths, which is its whole job: the floating padding here is the value being chosen, not a literal in a component that should read the ladder.",
+  },
+  {
     path: "packages/ui-kit/src/VisuallyHidden.tsx",
     families: ["spacing"],
     reason:
@@ -290,8 +296,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
    */
   motion: {
     "packages/app/src/styles/global.css": 2,
-    "packages/components/src/Navball/AttitudeIndicator.tsx": 2,
-    "packages/components/src/Navball/ThrottleGauge.tsx": 2,
     "packages/components/src/VesselSchematic/VesselSchematicBody.tsx": 2,
     "packages/serial/src/InputMappingTab.tsx": 1,
     "packages/serial/src/InputTester/index.tsx": 1,

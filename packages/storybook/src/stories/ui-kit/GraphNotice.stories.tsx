@@ -15,7 +15,7 @@ function AltitudeTrace() {
       style={{
         display: "block",
         background: "var(--color-surface-sunken)",
-        border: "1px solid var(--color-border-subtle)",
+        border: "var(--border-width-hairline) solid var(--color-border-subtle)",
       }}
     >
       <polyline

@@ -117,7 +117,7 @@ const ConsoleFrame__Box = styled.div<{ $tone: ConsoleTone }>`
   flex-direction: column;
   background: var(--color-surface-panel);
   /* Subtle, not the tone: the accent belongs to the input's own border. */
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   overflow: hidden;
 

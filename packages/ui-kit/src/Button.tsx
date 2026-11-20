@@ -209,7 +209,7 @@ export const TextButton = styled.button`
   cursor: pointer;
   padding: 0;
   text-decoration: underline;
-  transition: color var(--duration-fast);
+  transition: color var(--duration-fast) var(--ease-standard);
 
   @media (hover: hover) {
     &:hover {

@@ -260,13 +260,13 @@ export function ChaptersEditor({ flight, onChange }: ChaptersEditorProps) {
 const Container = styled.div`
   padding: var(--inset-chapters-band);
   background: var(--color-surface-app);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
 `;
 
 const Header = styled.div`
   font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-faint);
   margin-bottom: var(--gap-heading-hint);
@@ -321,7 +321,7 @@ const Actions = styled.span`
 
 const EditButton = styled.button`
   background: none;
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-compact);
@@ -332,7 +332,7 @@ const EditButton = styled.button`
 
 const SaveButton = styled.button`
   background: var(--color-go-status);
-  border: 1px solid var(--color-go-status);
+  border: var(--border-width-hairline) solid var(--color-go-status);
   color: var(--color-go-on-status);
   cursor: pointer;
   font-size: var(--font-size-compact);
@@ -342,7 +342,7 @@ const SaveButton = styled.button`
 
 const CancelButton = styled.button`
   background: none;
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-compact);
@@ -361,7 +361,7 @@ const AddRow = styled.div`
 
 const AddButton = styled.button`
   background: none;
-  border: 1px dashed var(--color-text-faint);
+  border: var(--border-width-hairline) dashed var(--color-text-faint);
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-compact);

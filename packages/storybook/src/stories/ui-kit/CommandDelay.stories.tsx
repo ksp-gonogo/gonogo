@@ -131,7 +131,7 @@ function DragBar({ children }: { children: ReactNode }) {
     <div
       style={{
         background: "var(--color-surface-raised)",
-        border: "1px solid var(--color-border-subtle)",
+        border: "var(--border-width-hairline) solid var(--color-border-subtle)",
         borderRadius: "var(--radius-regular)",
         overflow: "hidden",
       }}

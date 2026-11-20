@@ -34,6 +34,10 @@ const ALLOWED_PATHS = [
   "packages/theme/src/tokens.css",
   "packages/app/src/styles/global.css",
   "packages/ui/src/themes/defaultDark.ts",
+  "packages/ui/src/themes/apollo.ts",
+  "packages/ui/src/themes/daylight.ts",
+  "packages/ui/src/themes/dense.ts",
+  "packages/ui/src/themes/highContrast.ts",
   "packages/core/src/registry.test.ts",
   // stock-bodies.ts: per-body colour metadata for celestial bodies
   // (KSP planets/moons). These are data, not theme tokens, each body

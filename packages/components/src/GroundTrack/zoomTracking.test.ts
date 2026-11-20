@@ -63,7 +63,7 @@ function recordingContext() {
 /** The track as the painter draws it, at `camera`: its first drawn point, and the stroke and dash it was drawn with, all in screen pixels. */
 function drawnTrack(camera: Camera) {
   const recorded = recordingContext();
-  paintPrediction(recorded.ctx, {
+  paintPrediction(document.createElement("canvas"), recorded.ctx, {
     w: W,
     h: H,
     camera,

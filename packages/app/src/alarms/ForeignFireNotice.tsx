@@ -52,28 +52,28 @@ export function ForeignFireNotice({
 }
 
 const Wrap = styled.div`
-  background: rgba(90, 15, 15, 0.95);
-  border: 1px solid var(--color-nogo-mark);
-  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-alarm-notice) 95%, transparent);
+  border: var(--border-width-hairline) solid var(--color-nogo-mark);
+  border-radius: var(--radius-banner);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
   padding: var(--inset-banner);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--shadow-banner);
   pointer-events: auto;
   max-width: 100%;
 `;
 
 const Label = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-nogo-text);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 `;
 
 const AlarmName = styled.span`
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   max-width: 22em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -82,13 +82,13 @@ const AlarmName = styled.span`
 
 const AckButton = styled.button`
   background: none;
-  border: 1px solid var(--color-nogo-mark);
+  border: var(--border-width-hairline) solid var(--color-nogo-mark);
   color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   cursor: pointer;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   @media (hover: hover) {
     &:hover {

@@ -1052,11 +1052,11 @@ const ControlDelayStream__Zones = styled.div`
   margin: 0 var(--gutter-panel);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 
   b {
     color: var(--color-text-dim);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     font-variant-numeric: tabular-nums;
   }
 `;
@@ -1069,7 +1069,7 @@ const ControlDelayStream__Legend = styled.div`
   margin: var(--outset-delay-legend);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 
   span {
     display: inline-flex;

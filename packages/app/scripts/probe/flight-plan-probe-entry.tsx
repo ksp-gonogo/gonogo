@@ -19,7 +19,7 @@ import {
   TelemetryOverlayProvider,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import {
-  harnessTheme,
+  harnessThemeFull,
   type StreamFixture,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -522,7 +522,7 @@ async function render(scene: Scene): Promise<void> {
   }
   root = createRoot(host);
   root.render(
-    <ThemeProvider theme={harnessTheme}>
+    <ThemeProvider theme={harnessThemeFull}>
       <ScreenProvider value="main">
         <ModalProvider>
           <live.Provider>

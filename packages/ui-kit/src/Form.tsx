@@ -90,7 +90,7 @@ export const ConfigForm = styled.div<{
     $boxed
       ? `
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   padding: var(--inset-form-box);
 `
@@ -174,8 +174,8 @@ export const FieldRow = styled.div`
  */
 export const FieldLabel = styled.label`
   font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;
@@ -208,7 +208,7 @@ export const FormActions = styled.div`
 
 const inputBase = css`
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
@@ -343,7 +343,7 @@ const FieldWord = styled.span`
   pointer-events: none;
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 `;
 
 const FieldBox = styled.div`

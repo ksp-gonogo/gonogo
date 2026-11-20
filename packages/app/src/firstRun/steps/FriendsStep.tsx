@@ -193,7 +193,7 @@ const Choices = styled.fieldset`
   legend {
     padding: 0;
     margin-bottom: var(--gap-related);
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
   }
 
   label {

@@ -248,7 +248,7 @@ const SliderWord = styled.span`
   }
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 `;
 
 const Slider__Input = styled.input`

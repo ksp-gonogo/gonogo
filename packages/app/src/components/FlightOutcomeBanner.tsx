@@ -744,7 +744,7 @@ const bannerBase = `
   align-items: center;
   gap: var(--gap-section);
   padding: var(--inset-banner);
-  background: rgba(0, 0, 0, 0.88);
+  background: color-mix(in srgb, var(--color-scrim) 88%, transparent);
   border-radius: var(--radius-pill);
   font-family: inherit;
   font-size: var(--font-size-compact);
@@ -758,7 +758,7 @@ const bannerBase = `
   text-align: start;
 
   &:hover {
-    background: rgba(20, 22, 26, 0.95);
+    background: color-mix(in srgb, var(--color-alarm-overlay) 95%, transparent);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -782,7 +782,7 @@ const bannerBase = `
 
 const RecoveryBanner = styled.button`
   ${bannerBase}
-  border: 1px solid var(--color-go-text);
+  border: var(--border-width-hairline) solid var(--color-go-text);
 
   &:focus-visible {
     outline: 2px solid var(--color-go-text);
@@ -792,7 +792,7 @@ const RecoveryBanner = styled.button`
 
 const CrashBanner = styled.button`
   ${bannerBase}
-  border: 1px solid var(--color-nogo-text);
+  border: var(--border-width-hairline) solid var(--color-nogo-text);
 
   &:focus-visible {
     outline: 2px solid var(--color-nogo-text);
@@ -803,7 +803,7 @@ const CrashBanner = styled.button`
 const ContactLossBox = styled.div<{ $lost: boolean }>`
   ${bannerBase}
   cursor: default;
-  border: 1px solid
+  border: var(--border-width-hairline) solid
     ${({ $lost }) =>
       $lost ? "var(--color-nogo-text)" : "var(--color-warn-text)"};
 `;
@@ -812,19 +812,19 @@ const BannerLabel = styled.span<{
   $variant: "recovered" | "crashed" | "overdue";
 }>`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: ${({ $variant }) =>
     $variant === "crashed"
       ? "var(--color-nogo-text)"
       : $variant === "overdue"
         ? "var(--color-warn-text)"
         : "var(--color-go-text)"};
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 `;
 
 const BannerVessel = styled.span`
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 `;
 
 const BannerStats = styled.span`
@@ -840,7 +840,7 @@ const BannerStat = styled.span`
 const BannerHint = styled.span`
   color: var(--color-text-faint);
   font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 `;
 
 // ── Modal detail styles ───────────────────────────────────────────────────
@@ -902,7 +902,7 @@ const TotalsHeader = styled.div`
 
 const TotalsHeadCell = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-faint);
   text-align: right;
@@ -914,7 +914,7 @@ const TotalsRow = styled.div`
 
 const TotalLabel = styled.span`
   font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
 `;

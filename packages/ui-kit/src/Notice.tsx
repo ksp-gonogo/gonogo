@@ -33,7 +33,7 @@ const Notice__Root = styled(Block__Root)<{ $tone: Tone }>`
   --bleed-inline: 0px;
 
   background: var(--color-surface-sunken);
-  border: 1px solid ${({ $tone }) => toneEdge($tone)};
+  border: var(--border-width-hairline) solid ${({ $tone }) => toneEdge($tone)};
   border-radius: var(--radius-regular);
   /* A banner is its own strip of the screen, so it takes the roomier inset. */
   padding: var(--inset-surface-standalone);

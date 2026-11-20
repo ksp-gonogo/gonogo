@@ -316,7 +316,7 @@ const Dropdown = styled.div<{ $placement: "below" | "above" }>`
   right: 0;
   min-width: 16rem;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-width-hairline) solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   max-height: 280px;
   overflow-y: auto;
@@ -327,8 +327,8 @@ const DropdownGroup = styled.div``;
 
 const GroupHeader = styled.div`
   font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-muted);
   padding: var(--inset-menu-group-label);

@@ -1,7 +1,7 @@
 import { ScreenProvider } from "@ksp-gonogo/core";
 import { PropagationHorizonKind, TrajectoryKind } from "@ksp-gonogo/sitrep-sdk";
 import {
-  harnessTheme,
+  harnessThemeFull,
   type StreamFixture,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -159,7 +159,7 @@ async function renderScene(scene: Scene): Promise<void> {
 
   root = createRoot(host);
   root.render(
-    <ThemeProvider theme={harnessTheme}>
+    <ThemeProvider theme={harnessThemeFull}>
       <ScreenProvider value="main">
         <fixture.Provider>
           <AlarmsModal

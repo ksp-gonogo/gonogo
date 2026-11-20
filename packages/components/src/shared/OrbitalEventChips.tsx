@@ -159,8 +159,8 @@ function ChipLabel({ children }: { children: ReactNode }) {
     <span
       style={{
         fontSize: "9px",
-        fontWeight: 700,
-        letterSpacing: "0.12em",
+        fontWeight: "var(--font-weight-bold)",
+        letterSpacing: "calc(0.12em * var(--tracking-scale))",
         flexShrink: 0,
       }}
     >

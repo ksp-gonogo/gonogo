@@ -32,8 +32,8 @@ export const SettingReadOnlyLine = styled.div<{ $indented?: boolean }>`
 export const GroupTitle = styled.h4`
   margin: 0;
   font-size: var(--font-size-value);
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;

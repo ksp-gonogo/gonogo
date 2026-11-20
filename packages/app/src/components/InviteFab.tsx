@@ -395,8 +395,8 @@ const Wrap = styled.div`
 
 const Label = styled.span`
   font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;
@@ -406,8 +406,8 @@ const Code = styled.code`
   align-self: center;
   color: var(--color-info-text);
   font-size: 40px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: calc(0.15em * var(--tracking-scale));
 `;
 
 const Address = styled.a`
@@ -442,7 +442,7 @@ const RegenerateWrap = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: var(--border-width-hairline) solid var(--color-border-subtle);
   padding-top: var(--gap-popover-section);
 `;
 

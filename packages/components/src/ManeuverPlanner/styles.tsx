@@ -21,7 +21,7 @@ const FEASIBILITY_CHIP_BASE: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   padding: "var(--inset-chip)",
   borderRadius: "var(--radius-pill)",
-  letterSpacing: "0.08em",
+  letterSpacing: "calc(0.08em * var(--tracking-scale))",
   textTransform: "uppercase",
 };
 
@@ -30,15 +30,15 @@ const FEASIBILITY_CHIP_OK: CSSProperties = {
   ...FEASIBILITY_CHIP_BASE,
   fontWeight: 400,
   background: "var(--color-go-status)",
-  border: "1px solid var(--color-go-status)",
+  border: "var(--border-width-hairline) solid var(--color-go-status)",
   color: "var(--color-go-text)",
 };
 
 const FEASIBILITY_CHIP_FAIL: CSSProperties = {
   ...FEASIBILITY_CHIP_BASE,
-  fontWeight: 700,
+  fontWeight: "var(--font-weight-bold)",
   background: "var(--color-nogo-muted)",
-  border: "1px solid var(--color-nogo-mark)",
+  border: "var(--border-width-hairline) solid var(--color-nogo-mark)",
   color: "var(--color-nogo-text)",
 };
 
@@ -65,7 +65,7 @@ const FEASIBILITY_BANNER_STYLE: CSSProperties = {
   // Roomier than --inset-surface: the shortfall text is the widest thing in the widget.
   padding: "var(--inset-feasibility-banner)",
   background: "var(--color-nogo-muted)",
-  border: "1px solid var(--color-nogo-mark)",
+  border: "var(--border-width-hairline) solid var(--color-nogo-mark)",
   borderRadius: "var(--radius-regular)",
   color: "var(--color-nogo-text)",
 };
@@ -78,8 +78,8 @@ export function FeasibilityBannerTitle({
 
 const FEASIBILITY_BANNER_TITLE_STYLE: CSSProperties = {
   fontSize: "var(--font-size-caption)",
-  fontWeight: 700,
-  letterSpacing: "0.1em",
+  fontWeight: "var(--font-weight-bold)",
+  letterSpacing: "calc(0.1em * var(--tracking-scale))",
   textTransform: "uppercase",
 };
 
@@ -113,7 +113,7 @@ export function Label({ children }: Readonly<{ children?: ReactNode }>) {
 const LABEL_STYLE: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   color: "var(--color-text-faint)",
-  letterSpacing: "0.08em",
+  letterSpacing: "calc(0.08em * var(--tracking-scale))",
   textTransform: "uppercase",
 };
 
@@ -148,7 +148,7 @@ const PREVIEW_VALUE_STYLE: CSSProperties = {
   alignItems: "center",
   gap: "var(--gap-readout-row) var(--gap-value-tag)",
   fontSize: "var(--font-size-value)",
-  letterSpacing: "0.03em",
+  letterSpacing: "calc(0.03em * var(--tracking-scale))",
   margin: 0,
 };
 
@@ -201,7 +201,7 @@ export function EditHint({ children }: Readonly<{ children?: ReactNode }>) {
 const EDIT_HINT_STYLE: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   color: "var(--color-text-dim)",
-  letterSpacing: "0.04em",
+  letterSpacing: "calc(0.04em * var(--tracking-scale))",
   textAlign: "right",
 };
 
@@ -241,7 +241,7 @@ const WAITING_PANEL_STYLE: CSSProperties = {
   gap: "var(--gap-related)",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-border-subtle)",
+  border: "var(--border-width-hairline) solid var(--color-border-subtle)",
   borderRadius: "var(--radius-regular)",
 };
 

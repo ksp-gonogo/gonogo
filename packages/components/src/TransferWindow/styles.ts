@@ -99,7 +99,7 @@ export const NowLabel = styled.span`
   color: var(--color-text-muted);
   font-size: var(--font-size-caption);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 `;
 
 export const NowValue = styled.span`
@@ -130,7 +130,7 @@ export const ListTitle = styled.div`
   color: var(--color-text-muted);
   font-size: var(--font-size-caption);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 `;
 
 export const SectionHead = styled.div`
@@ -178,8 +178,8 @@ export const ReachTh = styled.th`
   font-weight: normal;
   font-size: var(--font-size-caption);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid var(--color-border-subtle);
+  letter-spacing: calc(0.06em * var(--tracking-scale));
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
 
   &:not(:first-child) {
     text-align: right;
@@ -189,7 +189,7 @@ export const ReachTh = styled.th`
 export const ReachTd = styled.td`
   /* Matches ReachTh above. */
   padding: var(--inset-reach-cell);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
   white-space: nowrap;
 `;
 
