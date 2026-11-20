@@ -613,6 +613,7 @@ export {
   type ResourceTransferPickerProps,
 } from "./ResourceTransferPicker";
 export { Row, RowName, type RowProps } from "./Row";
+export { RANGE_MARK, rangePart } from "./rangeMarkSpec";
 export {
   type CurrencyOptions,
   derivedMarking,

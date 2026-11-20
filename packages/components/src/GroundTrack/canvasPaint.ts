@@ -2,6 +2,7 @@ import { latLonToMap } from "@ksp-gonogo/core";
 import type { TrackSample } from "@ksp-gonogo/sitrep-client";
 import {
   paintVesselMark,
+  RANGE_MARK,
   RECKONING_MARK,
   splitAtPoleCrossings,
   wrapPath,
@@ -398,8 +399,11 @@ export function paintTrail(
           vSpeed: to.vSpeed,
         });
         const [r, g, b] = style.color;
-        ctx.strokeStyle = `rgba(${r},${g},${b},${style.alpha})`;
-        ctx.lineWidth = trailScreenWidth(style.width) / camera.zoom;
+        // The kit's standard for a range: the part after the moment on screen is the same line, dimmer and thinner.
+        const part = RANGE_MARK[to.ahead ? "ahead" : "reached"];
+        ctx.strokeStyle = `rgba(${r},${g},${b},${style.alpha * part.alpha})`;
+        ctx.lineWidth =
+          (trailScreenWidth(style.width) * part.width) / camera.zoom;
         ctx.beginPath();
         ctx.moveTo(copy[i - 1].x, copy[i - 1].y);
         ctx.lineTo(copy[i].x, copy[i].y);

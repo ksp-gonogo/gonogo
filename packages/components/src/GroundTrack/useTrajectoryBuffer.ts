@@ -16,6 +16,8 @@ export type TrajectoryPoint = {
   mach?: number;
   speed?: number;
   vSpeed?: number;
+  /** Set on a point of a range the source holds that lies after the moment on screen. */
+  ahead?: boolean;
 };
 
 const samePlace = (a: TrajectoryPoint, b: TrajectoryPoint) =>
