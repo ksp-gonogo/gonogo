@@ -1,12 +1,12 @@
 import type { MissionMeta } from "@ksp-gonogo/sitrep-sdk";
-import {
-  getReplaySessionController,
-  ReplaySessionProvider,
-} from "@ksp-gonogo/sitrep-sdk/spine";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import crashfall from "../../components/src/LandingStatus/__fixtures__/rig/landing-crashfall.replay.json";
 import lowpass from "../../components/src/LandingStatus/__fixtures__/rig/landing-lowpass.replay.json";
 import { RequiresGuard } from "../../components/src/shared/RequiresGuard";
+import {
+  getReplaySessionController,
+  ReplaySessionProvider,
+} from "../../test-utils/src/recordedFlightPlayer";
 import { builtOnce } from "../scripts/builtOnce";
 import { DEFAULT_SIZE } from "../scripts/landingStorySize";
 import { PlaybackStart } from "./PlaybackStart";
@@ -177,7 +177,7 @@ export interface LandingReplaySceneProps {
 }
 
 /**
- * Landing Status played through a landing the live rig recorded off the wire, by the app's own mission-replay path: the frames reach the widget through `ReplayTransport` and the replay session's client and store, the same ones a replayed mission uses, so the widget reads each topic's currency as it does in the app. Replay starts it over.
+ * Landing Status played through a landing the live rig recorded off the wire, frame by frame as it arrived: the frames reach the widget through `ReplayTransport` and a client and store of their own, so the widget reads each topic's currency as it did when the flight was flown. Replay starts it over.
  */
 export function LandingReplayScene({
   recording,

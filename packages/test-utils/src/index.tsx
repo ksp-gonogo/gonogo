@@ -27,3 +27,11 @@ export {
   renderHookWithRail as renderHook,
   renderWithRail as render,
 } from "@ksp-gonogo/ui-kit/testing";
+
+export {
+  getReplaySessionController,
+  ReplaySessionController,
+  ReplaySessionProvider,
+  type ReplaySessionSnapshot,
+  resetReplaySessionControllerForTests,
+} from "./recordedFlightPlayer";

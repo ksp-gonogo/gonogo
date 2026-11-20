@@ -12,8 +12,6 @@ import type {
   ModeTimeline,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  getReplaySessionController,
-  ReplaySessionProvider,
   registerContribution,
   type TelemetryOverlay,
   TelemetryOverlayProvider,
@@ -23,6 +21,10 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  getReplaySessionController,
+  ReplaySessionProvider,
+} from "@ksp-gonogo/test-utils";
 import {
   BannerPill,
   BannerStack,

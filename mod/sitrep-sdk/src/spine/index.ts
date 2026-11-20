@@ -105,7 +105,6 @@ export * from "./reckoners";
 export * from "./reference-frame";
 export * from "./replay-recorder";
 export * from "./replay-session";
-export * from "./replay-session-controller";
 export * from "./replay-transport";
 export * from "./screen";
 export * from "./send-status";

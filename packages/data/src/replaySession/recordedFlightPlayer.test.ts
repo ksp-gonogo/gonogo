@@ -1,12 +1,12 @@
 import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
 import type { Meta, ServerMessage, Value } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { MissionMeta } from "../storage/MissionStore";
 import {
   getReplaySessionController,
   resetReplaySessionControllerForTests,
-} from "./ReplaySessionController";
+} from "@ksp-gonogo/test-utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { MissionMeta } from "../storage/MissionStore";
 
 function meta(overrides: Partial<Meta> = {}): Meta {
   return {

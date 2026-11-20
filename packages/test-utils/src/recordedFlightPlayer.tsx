@@ -1,11 +1,23 @@
-import type { ServerMessage } from "../envelope";
-import type { MissionMeta } from "../flight/types";
-import { TelemetryClient } from "./client";
-import type { Clock } from "./clock";
-import { publishProcessorsOn } from "./context";
-import { type ReplayFixture, ReplayTransport } from "./replay-transport";
-import { TimelineStore } from "./timeline-store";
-import { ViewClock } from "./view-clock";
+import type { MissionMeta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type Clock,
+  publishProcessorsOn,
+  type ReplayFixture,
+  ReplayTransport,
+  TelemetryClient,
+  TelemetryProvider,
+  TimelineStore,
+  ViewClock,
+} from "@ksp-gonogo/sitrep-sdk/spine";
+import { type ReactNode, useSyncExternalStore } from "react";
+
+/*
+ * A recorded flight played into a tree on one screen, frame by frame as it
+ * arrived. The app's own Replay is a mode the mod holds; this is for a story,
+ * a probe or a test that wants a recording behind a widget with no mod and no
+ * mode, and wants each Topic's currency to read as it did when the frames
+ * came in.
+ */
 
 /**
  * `Clock` that runs `rate`x real wall-clock speed, anchored at construction
@@ -314,4 +326,25 @@ export function getReplaySessionController(): ReplaySessionController {
 export function resetReplaySessionControllerForTests(): void {
   singleton?.stop();
   singleton = null;
+}
+
+/**
+ * Shows the recording the controller is playing in place of whatever stream
+ * wraps it, for everything below. With nothing playing it renders `children`
+ * untouched.
+ */
+export function ReplaySessionProvider({ children }: { children: ReactNode }) {
+  const controller = getReplaySessionController();
+  const snapshot = useSyncExternalStore<ReplaySessionSnapshot>(
+    (cb) => controller.subscribe(cb),
+    () => controller.getSnapshot(),
+  );
+  if (!snapshot.active || !snapshot.client || !snapshot.store) {
+    return <>{children}</>;
+  }
+  return (
+    <TelemetryProvider client={snapshot.client} store={snapshot.store}>
+      {children}
+    </TelemetryProvider>
+  );
 }
