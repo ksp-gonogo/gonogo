@@ -66,7 +66,7 @@ export function useModelledPosition({
   );
   const bucket = carriedTo === undefined ? undefined : carriedBucket;
   const from = receivedUt === undefined ? undefined : receivedBucket;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the reading changes every frame; invalidation is gated on the two instants' buckets
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the reading, lat and lon change with every sample; invalidation is gated on the two instants' buckets, which the throttle holds
   return useMemo(() => {
     if (!enabled) return null;
     if (bucket === undefined || receivedUt === undefined) return null;
@@ -146,5 +146,5 @@ export function useModelledPosition({
       lon: modelledLon,
       spread: spreadOf(),
     };
-  }, [enabled, bucket, from, lat, lon, targetBodyId, body]);
+  }, [enabled, bucket, from, targetBodyId, body]);
 }

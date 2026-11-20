@@ -10,8 +10,11 @@ export function quantiseUt(ut: number | undefined, bucketSec = 1): number {
   return Math.floor(ut / bucketSec) * bucketSec;
 }
 
-/** The shortest real time between two solves of the same prediction: five a second each. */
-export const MIN_SOLVE_INTERVAL_MS = 200;
+/** The shortest real time between two solves of the same prediction: four a second each. */
+export const MIN_SOLVE_INTERVAL_MS = 250;
+
+/** The shortest real time between solves of the planned-burn tracks, which cost one solve per node: one a second. */
+export const MANEUVER_SOLVE_INTERVAL_MS = 1000;
 
 /**
  * `quantiseUt` of several instants together, held for at least
@@ -21,12 +24,14 @@ export const MIN_SOLVE_INTERVAL_MS = 200;
  * buckets advance together on the first frame after the interval, so the track
  * trails the clock by at most that interval and never stops following it. A
  * first reading is taken at once, and so is a bucket that moves backward (a
- * revert or a scrub).
+ * revert or a scrub). `minIntervalMs` sets the interval, for a prediction that
+ * costs several solves at once.
  */
 export function useThrottledBuckets(
   uts: readonly (number | undefined)[],
   bucketSec = 1,
   nowMs?: () => number,
+  minIntervalMs = MIN_SOLVE_INTERVAL_MS,
 ): number[] {
   const store = useTelemetryStoreOptional();
   const buckets = uts.map((ut) => quantiseUt(ut, bucketSec));
@@ -49,7 +54,7 @@ export function useThrottledBuckets(
   if (
     current === null ||
     backward ||
-    (moved && now - current.at >= MIN_SOLVE_INTERVAL_MS)
+    (moved && now - current.at >= minIntervalMs)
   ) {
     held.current = { buckets, at: now };
     return buckets;
@@ -62,6 +67,7 @@ export function useThrottledBucket(
   ut: number | undefined,
   bucketSec = 1,
   nowMs?: () => number,
+  minIntervalMs = MIN_SOLVE_INTERVAL_MS,
 ): number {
-  return useThrottledBuckets([ut], bucketSec, nowMs)[0];
+  return useThrottledBuckets([ut], bucketSec, nowMs, minIntervalMs)[0];
 }

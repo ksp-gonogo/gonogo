@@ -66,12 +66,113 @@ function onTheGroundWithItsPatch(): Scene {
   return { _stream: { ...launchpad._stream, emits } };
 }
 
+/** The payload as a record, so a fixture can read and extend it without a cast. */
+function asRecord(payload: unknown): Record<string, unknown> {
+  if (typeof payload !== "object" || payload === null) {
+    throw new Error("the fixture payload is not an object");
+  }
+  return Object.fromEntries(Object.entries(payload));
+}
+
+/** A number field of a fixture payload. */
+function numberField(payload: Record<string, unknown>, key: string): number {
+  const field = payload[key];
+  if (typeof field !== "number") {
+    throw new Error(`the fixture orbit has no numeric ${key}`);
+  }
+  return field;
+}
+
+/** The equatorial orbit with five planned burns, each a circular post-burn patch a little further along. */
+function withFiveNodes(scene: Scene): Scene {
+  const orbit = asRecord(
+    scene._stream.emits.find((e) => e.channel === "vessel.orbit")?.value,
+  );
+  const epoch = numberField(orbit, "epoch");
+  const mu = numberField(orbit, "mu");
+  const nodes = [1, 2, 3, 4, 5].map((n) => {
+    const ut = epoch + n * 600;
+    const sma = 685_000 + n * 1000;
+    const period = 2 * Math.PI * Math.sqrt(sma ** 3 / mu);
+    return {
+      id: `node-${n}`,
+      ut,
+      ignitionUt: ut - 20,
+      cutoffUt: ut + 20,
+      frame: 0,
+      dvRadial: 0,
+      dvNormal: 0,
+      dvPrograde: 100 * n,
+      dvTotal: 100 * n,
+      patches: [
+        {
+          sma,
+          ecc: 0,
+          inc: 0,
+          lan: 0,
+          argPe: 0,
+          meanAnomalyAtEpoch: 0,
+          epoch: ut,
+          period,
+          startUt: ut,
+          endUt: ut + period,
+          patchStartTransition: 4,
+          patchEndTransition: 1,
+          peA: sma - 600_000,
+          apA: sma - 600_000,
+          semiLatusRectum: sma,
+          semiMinorAxis: sma,
+          referenceBody: "Kerbin",
+          referenceBodyIndex: 1,
+          closestEncounterBody: null,
+          mu,
+        },
+      ],
+    };
+  });
+  return {
+    _stream: {
+      ...scene._stream,
+      emits: [
+        ...scene._stream.emits,
+        { channel: "vessel.maneuver", value: { nodes, planner: "stock" } },
+      ],
+    },
+  };
+}
+
+/** The scene with the provider stating how far its conic can drift, so the modelled position carries a spread. */
+function withDeparture(scene: Scene): Scene {
+  const emits = scene._stream.emits.map((emit) => {
+    if (emit.channel !== "vessel.orbit") return emit;
+    const orbit = asRecord(emit.value);
+    return {
+      ...emit,
+      value: {
+        ...orbit,
+        horizon: {
+          ...asRecord(orbit.horizon),
+          departure: [
+            {
+              untilUt: 1e9,
+              metres: 10,
+              metresPerSecond: 0.01,
+            },
+          ],
+        },
+      },
+    };
+  });
+  return { _stream: { ...scene._stream, emits } };
+}
+
 let segments = 0;
+let maneuverTracks = 0;
 
 /** The map's own reads and its prediction, wired as `GroundTrack` wires them. */
 function Probe() {
   const telemetry = useMapTelemetry(undefined);
-  const { predictionSegments } = useGroundTrackPrediction({
+  const { predictionSegments, maneuverSegments } = useGroundTrackPrediction({
     enabled: telemetry.predictable,
     trajectory: telemetry.trajectory,
     orbitPatches: telemetry.orbitPatches,
@@ -83,6 +184,7 @@ function Probe() {
     universalTime: telemetry.universalTime,
   });
   segments = predictionSegments.length;
+  maneuverTracks = maneuverSegments.filter((m) => m.length > 0).length;
   return null;
 }
 
@@ -100,6 +202,7 @@ async function predictionsOverIdleFrames(
   scene: Scene,
   frames: number,
   warp = 1,
+  settle = true,
 ): Promise<number> {
   const budget = PerfBudget.getAll().find((b) =>
     b.name.startsWith("predictGroundTrack"),
@@ -143,7 +246,7 @@ async function predictionsOverIdleFrames(
     wall.advanceBy(1 / 60);
     await frame();
   });
-  budget.reset();
+  if (settle) budget.reset();
   for (let i = 0; i < frames; i++) {
     await act(async () => {
       wall.advanceBy(1 / 60);
@@ -179,6 +282,36 @@ describe("GroundTrack's ground track prediction", () => {
     expect(calls).toBeGreaterThan(0);
     // The track and the modelled position each solve on a held bucket, and again on each of the four samples a second.
     expect(calls).toBeLessThanOrEqual(15);
+  });
+
+  it("stays under the budget of thirty a second at 100x warp with five maneuver nodes", async () => {
+    const calls = await predictionsOverIdleFrames(
+      withFiveNodes(orbiting),
+      60,
+      100,
+    );
+    expect(maneuverTracks).toBe(5);
+    expect(calls).toBeLessThanOrEqual(15);
+  });
+
+  it("stays under the budget at 100x warp from the first frame after mount, with five maneuver nodes", async () => {
+    const calls = await predictionsOverIdleFrames(
+      withFiveNodes(orbiting),
+      60,
+      100,
+      false,
+    );
+    expect(maneuverTracks).toBe(5);
+    expect(calls).toBeLessThanOrEqual(15);
+  });
+
+  it("with a stated departure, one tile with five nodes stays near twenty a second, with the track held on the marker's clock at 100x warp", async () => {
+    const calls = await predictionsOverIdleFrames(
+      withDeparture(withFiveNodes(orbiting)),
+      60,
+      100,
+    );
+    expect(calls).toBeLessThanOrEqual(20);
   });
 
   it("is not asked for at all while the craft is on the ground, where there is no track to lay", async () => {

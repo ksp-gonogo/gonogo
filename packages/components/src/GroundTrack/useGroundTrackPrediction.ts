@@ -13,7 +13,10 @@ import {
 import { kspCalendar, splitAtPoleCrossings } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import type { bodyNamed } from "../shared/streamBody";
-import { useThrottledBucket } from "./predictionThrottle";
+import {
+  MANEUVER_SOLVE_INTERVAL_MS,
+  useThrottledBucket,
+} from "./predictionThrottle";
 
 interface GroundTrackInputs {
   enabled: boolean;
@@ -70,8 +73,15 @@ export function useGroundTrackPrediction({
   predictionSegments: TrackSample[][];
   maneuverSegments: TrackSample[][][];
 } {
-  // One-second buckets, solved at most five times a second at any warp: body-rotation drift over a second is about 0.1 degree of longitude.
-  const utBucket = useThrottledBucket(universalTime, 1);
+  // One-second buckets, solved at most four times a second at any warp: body-rotation drift over a second is about 0.1 degree of longitude.
+  const utBucket = useThrottledBucket(universalTime, 1, undefined);
+  // Each planned burn is solved on its own, so the set costs one solve per node; it follows the clock on a longer interval.
+  const maneuverBucket = useThrottledBucket(
+    universalTime,
+    1,
+    undefined,
+    MANEUVER_SOLVE_INTERVAL_MS,
+  );
   // The shape and nothing else of the trajectory: the object is built afresh on every render, and as a dependency it solved the track again on every frame.
   const conic = trajectory?.shape === "conic";
   // biome-ignore lint/correctness/useExhaustiveDependencies: lat/lon/universalTime read inside, but invalidation gated on utBucket; see comment above
@@ -149,7 +159,14 @@ export function useGroundTrackPrediction({
       );
       return splitAtPoleCrossings(samples);
     });
-  }, [enabled, orbitPatches, maneuverNodes, targetBodyId, body, utBucket]);
+  }, [
+    enabled,
+    orbitPatches,
+    maneuverNodes,
+    targetBodyId,
+    body,
+    maneuverBucket,
+  ]);
 
   return { predictionSegments, maneuverSegments };
 }
