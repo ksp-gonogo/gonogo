@@ -1,10 +1,9 @@
 import { clearRegistry, ErrorBoundary } from "@ksp-gonogo/core";
 import {
   getAutoRecordStatus,
-  getReplaySessionController,
   resetAutoRecordStatusForTests,
-  resetReplaySessionControllerForTests,
 } from "@ksp-gonogo/data";
+import { setModeLayer } from "@ksp-gonogo/sitrep-client";
 import {
   act,
   render,
@@ -34,7 +33,7 @@ describe("MainScreen: a replay and the live recording", () => {
   });
 
   afterEach(() => {
-    resetReplaySessionControllerForTests();
+    setModeLayer(undefined);
     vi.unstubAllGlobals();
   });
 
@@ -70,21 +69,50 @@ describe("MainScreen: a replay and the live recording", () => {
       expect(getAutoRecordStatus().recording).toBe(true);
     });
 
+    // A replay comes on: the mod says so, and this screen is given a recording's frames to show.
     act(() => {
-      getReplaySessionController().start(
+      transport.emit(
+        "mode.state",
         {
-          id: "m1",
-          vesselName: "Old Flight",
-          launchedAt: 0,
-          firstFrameUt: 0,
-          lastFrameUt: 1,
-          frameCount: 0,
-          starred: false,
+          mode: "replay",
+          name: "Replay",
+          answers: "craft",
+          modelled: false,
+          inputs: [],
+          timeline: null,
+          noTimeline: "",
+          entry: 1,
         },
-        { frames: [] },
+        { validAt: 11, deliveredAt: 11 },
       );
+      setModeLayer({
+        mode: "replay",
+        entry: 1,
+        modelled: false,
+        frames: [
+          JSON.stringify({
+            type: "stream-data",
+            topic: "flight.current",
+            payload: { flightId: "old", vesselName: "Old Flight", ut: 1 },
+            meta: {
+              source: "mode",
+              validAt: 1,
+              seq: 1,
+              deliveredAt: 1,
+              vantage: "meta",
+              active: true,
+              staleness: 0,
+              timelineEpoch: 0,
+              mode: "replay",
+            },
+          }),
+        ],
+      });
     });
-    expect(getReplaySessionController().getSnapshot().active).toBe(true);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 100));
+    });
+    // The recorder reads the live stream, never the replay laid over the tiles.
     expect(getAutoRecordStatus()).toMatchObject({
       recording: true,
       vesselName: "Kerbal X",

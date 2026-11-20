@@ -371,7 +371,7 @@ describe("FlightsManager", () => {
     ).toBeNull();
   });
 
-  it("gates the replay control behind isMain, but keeps browsing/star/graph available on a station", async () => {
+  it("offers replay, starring and graphs on a station as on the main screen, and no recording status", async () => {
     const store = freshStore();
     registerDataSource(new MissionHistorySource(store));
     await seedMission(store, { vesselName: "Station View" });
@@ -381,11 +381,12 @@ describe("FlightsManager", () => {
 
     // Recording is never a station concern at all now, it's not a button anywhere, main or station (see AutoRecordStatus's own doc comment).
     expect(screen.queryByText(/mission history is off/i)).toBeNull();
+    // A replay is entered through the mod, which a station reaches like any screen.
     expect(
-      screen.queryByRole("button", { name: /replay station view/i }),
-    ).toBeNull();
+      screen.getByRole("button", { name: /replay station view/i }),
+    ).toBeTruthy();
 
-    // Non-recording, non-replay interactions stay available on a station, per-mission peer RPCs make them work identically there.
+    // The other interactions go to the host over the peer link.
     expect(
       screen.getByRole("button", { name: /star station view/i }),
     ).toBeTruthy();

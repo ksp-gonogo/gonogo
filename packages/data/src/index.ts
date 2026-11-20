@@ -57,6 +57,8 @@ export {
   useBodyCoverageMask,
   useCoverageMaskCache,
 } from "@ksp-gonogo/sitrep-sdk";
+// Re-exported so this package's importers keep their import site.
+export { useReplaySessionActive } from "@ksp-gonogo/sitrep-sdk/spine";
 export * from "./FlightsFab";
 export * from "./FlightsManager";
 export type { AutoRecordControllerProps } from "./FlightsManager/AutoRecordController";
@@ -86,8 +88,12 @@ export {
   buildResourcesByFlightId,
   deriveTopologyFromVesselParts,
 } from "./hooks/vesselPartsAdapter";
-export * from "./replaySession/ReplaySessionController";
-export * from "./replaySession/ReplaySessionProvider";
+export {
+  REPLAY_FLIGHT_INPUT,
+  REPLAY_MODE,
+  REPLAY_TITLE_INPUT,
+  replayOutput,
+} from "./replaySession/replayMode";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
 export {
   getCollectionTopics,

@@ -1,6 +1,24 @@
 import { useScreen } from "@ksp-gonogo/core";
+import {
+  TelemetryProvider,
+  useActiveTelemetryClient,
+} from "@ksp-gonogo/sitrep-client";
 import { Fab, HistoryIcon, useModal } from "@ksp-gonogo/ui";
+import type { ReactNode } from "react";
 import { FlightsManager } from "./FlightsManager";
+
+/**
+ * Gives a window's content the screen's own stream. A window is drawn in a
+ * layer above the stream's provider, so without this its content reads
+ * nothing and, worse, sends nothing: the Replay control's commands to the mod
+ * went nowhere. It re-provides the client the screen is using, and follows it
+ * if the screen reconnects while the window is open.
+ */
+function InTheScreensStream({ children }: { children: ReactNode }) {
+  const client = useActiveTelemetryClient();
+  if (!client) return <>{children}</>;
+  return <TelemetryProvider client={client}>{children}</TelemetryProvider>;
+}
 
 export interface FlightsFabProps {
   /**
@@ -33,11 +51,13 @@ export function FlightsFab({
 
   function handleClick() {
     open(
-      <FlightsManager
-        screen={screen}
-        missionHistoryEnabled={missionHistoryEnabled}
-        recordAllTopics={recordAllTopics}
-      />,
+      <InTheScreensStream>
+        <FlightsManager
+          screen={screen}
+          missionHistoryEnabled={missionHistoryEnabled}
+          recordAllTopics={recordAllTopics}
+        />
+      </InTheScreensStream>,
       {
         title: "Flight History",
         width: "min(1024px, 95vw)",

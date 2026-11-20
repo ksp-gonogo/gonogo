@@ -5,8 +5,10 @@ import {
   FlightEndReason,
   getKeepCount,
   setKeepCount,
+  useModes,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
+import { useModeControls } from "@ksp-gonogo/sitrep-sdk/spine";
 import { HeartIcon } from "@ksp-gonogo/ui";
 import {
   Badge,
@@ -15,6 +17,7 @@ import {
   MissionDate,
   Notice,
   NULL_DISPLAY,
+  TONE_MARK,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import {
@@ -26,8 +29,12 @@ import {
   useSyncExternalStore,
 } from "react";
 import styled from "styled-components";
-import { getReplaySessionController } from "../replaySession/ReplaySessionController";
-import type { ContractFinish, MissionMeta } from "../storage/MissionStore";
+import {
+  REPLAY_FLIGHT_INPUT,
+  REPLAY_MODE,
+  REPLAY_TITLE_INPUT,
+} from "../replaySession/replayMode";
+import type { ContractFinish } from "../storage/MissionStore";
 import type { FlightRecord } from "../types";
 import {
   getAutoRecordStatus,
@@ -165,14 +172,10 @@ export interface FlightsManagerProps {
  * readout rather than a control, because with recording automatic there is
  * nothing left for the operator to press.
  *
- * Station visibility: browsing/star/chapters/graph/export/delete/bulk
- * actions/keep-latest-N are not gated by `isMain`, Task 4's peer RPCs
- * (`flight-rpc-request`/`query-range-request` against `"missionHistory"`)
- * make them work identically on a station via `PeerClientDataSource`. Only
- * the replay action stays `isMain`-only: `ReplaySessionProvider`/
- * `ReplaySessionController` are only mounted on `MainScreen`, not a
- * data-availability gap peer RPCs could close, a screen the station
- * genuinely doesn't run. Recording is not rendered here at all:
+ * Every action works on a station as on the main screen, replay included:
+ * browsing, starring, chapters, graphs, export and deletion go to the host
+ * over the peer link, and a replay is entered through the mod, which every
+ * screen can reach. Recording is not rendered here at all:
  * `AutoRecordController` mounts once, on the main screen only, regardless of
  * whether this modal is even open.
  *
@@ -188,6 +191,7 @@ export function FlightsManager({
   recordAllTopics = false,
 }: FlightsManagerProps = {}) {
   const isMain = screen === "main";
+  const modes = useModeControls();
   const [flights, setFlights] = useState<FlightRecord[]>([]);
   const [contractFinishes, setContractFinishes] = useState<ContractFinish[]>(
     [],
@@ -279,19 +283,18 @@ export function FlightsManager({
     downloadJson(fixture, fixtureFilename(flight));
   };
 
-  const handleReplay = async (flight: FlightRecord) => {
-    const src = getSource();
-    if (!src) return;
-    const fixture = await src.exportFlight(flight.id);
-    const meta: MissionMeta = {
-      id: flight.id,
-      vesselName: flight.vesselName,
-      launchedAt: flight.launchedAt,
-      firstFrameUt: flight.firstFrameUt ?? 0,
-      lastFrameUt: flight.lastFrameUt ?? 0,
-      frameCount: flight.sampleCount,
-    };
-    getReplaySessionController().start(meta, fixture);
+  // The control that starts a replay is drawn in the colour the replay mode declares.
+  const replayColour =
+    TONE_MARK[useModes().find((m) => m.id === REPLAY_MODE)?.tone ?? "info"];
+
+  /*
+   * Any screen starts a replay: it names the flight to the mod and enters the
+   * mode, and the screen that keeps the recordings supplies it to every other.
+   */
+  const handleReplay = (flight: FlightRecord) => {
+    modes.setInput(REPLAY_MODE, REPLAY_FLIGHT_INPUT, flight.id);
+    modes.setInput(REPLAY_MODE, REPLAY_TITLE_INPUT, flight.vesselName || "");
+    modes.enter(REPLAY_MODE);
   };
 
   const handleClearAll = async () => {
@@ -540,16 +543,15 @@ export function FlightsManager({
                           >
                             {isExpanded ? "− graph" : "＋ graph"}
                           </GraphButton>
-                          {isMain && (
-                            <ReplayButton
-                              type="button"
-                              onClick={() => void handleReplay(f)}
-                              aria-label={`Replay ${f.vesselName || "flight"}`}
-                              title="Replay this mission in the dashboard"
-                            >
-                              ▶ replay
-                            </ReplayButton>
-                          )}
+                          <ReplayButton
+                            type="button"
+                            $colour={replayColour}
+                            onClick={() => handleReplay(f)}
+                            aria-label={`Replay ${f.vesselName || "flight"}`}
+                            title="Replay this mission in the dashboard"
+                          >
+                            ▶ replay
+                          </ReplayButton>
                           <ExportButton
                             type="button"
                             onClick={() => void handleExport(f)}
@@ -827,7 +829,7 @@ const ExportButton = styled.button`
   }
 `;
 
-const ReplayButton = styled.button`
+const ReplayButton = styled.button<{ $colour: string }>`
   background: none;
   border: var(--border-width-hairline) solid var(--color-border-strong);
   color: var(--color-text-muted);
@@ -839,8 +841,8 @@ const ReplayButton = styled.button`
 
   @media (hover: hover) {
     &:hover {
-      border-color: var(--color-tag-purple-fg);
-      color: var(--color-tag-purple-fg);
+      border-color: ${({ $colour }) => $colour};
+      color: ${({ $colour }) => $colour};
     }
   }
 `;
