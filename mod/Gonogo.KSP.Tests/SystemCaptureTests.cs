@@ -31,6 +31,23 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
+        public void InAnEditorWhoseVesselListIsEmptyTheBodiesAreReadAndTheRosterIsNot()
+        {
+            /* The vehicle editor, in a save with 34 vessels: the list holds none, so it does not stand. */
+            Assert.False(SystemCapture.ReadsTheSystem(globalsPresent: true, inAGame: true, inFlight: false, flightReady: false, listed: 0, inGameState: 34));
+            Assert.True(SystemCapture.ReadsTheBodies(globalsPresent: true, inAGame: true));
+        }
+
+        [Fact]
+        public void TheBodiesAreReadWhileAFlightIsStillLoadingAndNotOutsideAGame()
+        {
+            Assert.False(SystemCapture.ReadsTheSystem(globalsPresent: true, inAGame: true, inFlight: true, flightReady: false, listed: 0, inGameState: 7));
+            Assert.True(SystemCapture.ReadsTheBodies(globalsPresent: true, inAGame: true));
+            Assert.False(SystemCapture.ReadsTheBodies(globalsPresent: true, inAGame: false));
+            Assert.False(SystemCapture.ReadsTheBodies(globalsPresent: false, inAGame: true));
+        }
+
+        [Fact]
         public void NothingIsReadWithNoGameLoadedOrBeforeTheGamesGlobalsExist()
         {
             Assert.False(SystemCapture.ReadsTheSystem(globalsPresent: true, inAGame: false, inFlight: false, flightReady: false, listed: 0, inGameState: null));

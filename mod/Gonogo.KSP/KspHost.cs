@@ -347,7 +347,7 @@ namespace Gonogo.KSP
                 var scene = HighLogic.LoadedScene;
                 var inAGame = HighLogic.CurrentGame != null
                     && (scene == GameScenes.FLIGHT || scene == GameScenes.SPACECENTER || scene == GameScenes.TRACKSTATION || scene == GameScenes.EDITOR);
-                // The bodies and the roster are there in every scene of a loaded game; the active vessel in flight alone.
+                // The bodies are there in every scene of a loaded game, the roster wherever the vessel list stands, and the active vessel in flight alone.
                 var readsTheSystem = globals && inAGame && VesselListWatch.Shared.Stands(
                     scene.ToString(),
                     HighLogic.LoadedSceneIsFlight,
@@ -355,7 +355,8 @@ namespace Gonogo.KSP
                     FlightGlobals.Vessels != null ? FlightGlobals.Vessels.Count : 0,
                     HighLogic.CurrentGame?.flightState?.protoVessels?.Count,
                     VesselListWatch.RealNow());
-                if (readsTheSystem)
+                /* The bodies are loaded with the game and no scene empties them, so they do not wait for the vessel list to stand, which in an editor can be for as long as it is open. */
+                if (SystemCapture.ReadsTheBodies(globals, inAGame))
                 {
                     var bodies = FlightGlobals.Bodies;
                     if (bodies != null && bodies.Count > 0)
@@ -374,7 +375,10 @@ namespace Gonogo.KSP
                         }
                         values["bodies"] = list;
                     }
+                }
 
+                if (readsTheSystem)
+                {
                     // Only the active vessel - stations/replay consume a
                     // single "the ship we're flying" snapshot, not a fleet
                     // roster. Omitted entirely (no "vessel" key at all) at
