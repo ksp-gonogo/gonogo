@@ -127,6 +127,7 @@ export * from "./use-action-input";
 export * from "./use-body-states";
 export * from "./use-command";
 export * from "./use-data-sources";
+export { type StreamEvent, useEvents } from "./use-events";
 export * from "./use-last-known-path";
 export * from "./use-late-telemetry-subscribe";
 export * from "./use-observed-vantage";

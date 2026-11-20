@@ -53,6 +53,7 @@ import type {
   MapBaseLayerContext,
   MapOverlayContext,
 } from "./slots";
+import { TrackAnnotations } from "./TrackAnnotations";
 import type { GroundTrackConfig } from "./types";
 import { useBaseLayers } from "./useBaseLayers";
 import { useCamera } from "./useCamera";
@@ -424,6 +425,9 @@ function GroundTrackComponent({
                           period: WORLD_W * camera.zoom,
                         }}
                       />
+                    )}
+                    {overlayContext && (
+                      <TrackAnnotations project={overlayContext.project} />
                     )}
                     <PersistentDataCanvas
                       ref={persistentDataRef}

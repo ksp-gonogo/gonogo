@@ -137,3 +137,22 @@ export const NoSignal = styled.div`
   text-transform: uppercase;
   pointer-events: none;
 `;
+
+/** A tick's own target on the map: large enough to find with a pointer, and a stop for the keyboard. Placed by `left` and `top` at the tick's centre. */
+export const TrackEventTarget = styled.button`
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-circle);
+  background: none;
+  cursor: help;
+  pointer-events: auto;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+`;
