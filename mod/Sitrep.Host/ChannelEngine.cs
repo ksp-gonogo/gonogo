@@ -9177,6 +9177,9 @@ namespace Sitrep.Host
                             case FreshConnectionVantageMovedJob:
                                 ProcessFreshConnectionVantageMoved((FreshConnectionVantageMovedJob)job);
                                 break;
+                            case KeepJob keep:
+                                keep.Kept.Keep(keep.SubTopic, keep.Payload);
+                                break;
                         }
                     }
                     catch (Exception ex)
@@ -14739,6 +14742,8 @@ namespace Sitrep.Host
         private readonly ITransportConnection _connection;
         private readonly ConcurrentDictionary<string, QueuedFrame> _latestByTopic = new ConcurrentDictionary<string, QueuedFrame>();
         private readonly ConcurrentQueue<byte[]> _reliable = new ConcurrentQueue<byte[]>();
+        private readonly object _bulkLock = new object();
+        private readonly LinkedList<KeyValuePair<string, byte[]>> _bulk = new LinkedList<KeyValuePair<string, byte[]>>();
         private readonly SemaphoreSlim _signal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _pumpThread;
         private volatile bool _stopping;
@@ -14769,6 +14774,22 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// Courier-thread-only: enqueue a large frame that must arrive but may
+        /// wait, such as a body's surface map. Never dropped or coalesced, sent in
+        /// order, and each handed to the socket only once it has written
+        /// everything before it, so a burst of them never piles up in the
+        /// socket's own queue past one frame.
+        /// </summary>
+        public void PublishBulk(string topic, byte[] payload)
+        {
+            lock (_bulkLock)
+            {
+                _bulk.AddLast(new KeyValuePair<string, byte[]>(topic, payload));
+            }
+            _signal.Release();
+        }
+
+        /// <summary>
         /// Courier-thread-only: drop any currently-queued (not yet pumped)
         /// lossy-latest frame for <paramref name="topic"/>: the LOW-4
         /// timeline-reset fix. Called from <c>ChannelEngine.BroadcastTimelineReset</c>
@@ -14777,7 +14798,23 @@ namespace Sitrep.Host
         /// never drain to the wire after that event. A genuine no-op if
         /// nothing was queued for the topic (the common case).
         /// </summary>
-        public void ClearTopic(string topic) => _latestByTopic.TryRemove(topic, out _);
+        public void ClearTopic(string topic)
+        {
+            _latestByTopic.TryRemove(topic, out _);
+            lock (_bulkLock)
+            {
+                var node = _bulk.First;
+                while (node != null)
+                {
+                    var next = node.Next;
+                    if (node.Value.Key == topic)
+                    {
+                        _bulk.Remove(node);
+                    }
+                    node = next;
+                }
+            }
+        }
 
         /// <summary>
         /// Courier-thread-only: moves a queued, not yet pumped lossy-latest frame for
@@ -14807,7 +14844,32 @@ namespace Sitrep.Host
         }
 
         /// <summary>Test-only: whether any frame, lossy-latest or reliable, is still waiting for the pump to hand it to the socket.</summary>
-        internal bool HasQueuedFrames => !_latestByTopic.IsEmpty || !_reliable.IsEmpty;
+        internal bool HasQueuedFrames => !_latestByTopic.IsEmpty || !_reliable.IsEmpty || HasBulk;
+
+        private bool HasBulk
+        {
+            get
+            {
+                lock (_bulkLock)
+                {
+                    return _bulk.Count > 0;
+                }
+            }
+        }
+
+        private byte[]? TakeBulk()
+        {
+            lock (_bulkLock)
+            {
+                var first = _bulk.First;
+                if (first == null)
+                {
+                    return null;
+                }
+                _bulk.RemoveFirst();
+                return first.Value.Value;
+            }
+        }
 
         private void PumpLoop()
         {
@@ -14815,7 +14877,7 @@ namespace Sitrep.Host
             {
                 _signal.Wait(PollInterval);
 
-                if (_stopping && _reliable.IsEmpty && _latestByTopic.IsEmpty)
+                if (_stopping && _reliable.IsEmpty && _latestByTopic.IsEmpty && !HasBulk)
                 {
                     return;
                 }
@@ -14842,6 +14904,14 @@ namespace Sitrep.Host
                     {
                         frame.OnSent?.Invoke();
                     }
+                }
+
+                /* One large frame per pass, and only to a socket that had written everything it was given. */
+                var bulk = TakeBulk();
+                if (bulk != null)
+                {
+                    _connection.TrySend(new ArraySegment<byte>(bulk), SendClass.Response);
+                    _signal.Release();
                 }
             }
         }

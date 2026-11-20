@@ -3115,7 +3115,7 @@ export interface ProbeServer {
 
 /**
  * Serves a generated probe page, and the app's `public/` folder beside it, from
- * a loopback server on a port the OS picks, so the page and every texture it
+ * a loopback server on a port the OS picks, so the page and every image it
  * draws share one origin. A page opened from file:// has an opaque origin, which
  * taints any canvas that draws an image and makes `getImageData` throw.
  */
@@ -3213,13 +3213,8 @@ export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
   // corrupt the bundle (React's sanitisation helpers use `$&` extensively).
   const escapedBundle = bundleJs.replace(/<\/script/gi, "<\\/script");
   /*
-   * Resolve relative asset URLs against the app's public/ directory.
-   *
-   * The page is written to the system tmpdir, so `bodies/Kerbin_Color.png` (what
-   * `registerStockBodies()` hands GroundTrack) resolved to a tmpdir path and 404'd.
-   * GroundTrack's `img.onerror` degrades to a colour wash by design, so every map
-   * render came out textureless and looked deliberate, with the failure visible
-   * only as console-error lines the harness prints and does not fail on.
+   * Resolve relative asset URLs against the app's public/ directory. The page
+   * is written to the system tmpdir, where a relative URL would otherwise point.
    */
   const assetBase = `<base href="${pathToFileURL(join(PUBLIC_ASSETS, "/")).toString()}" />`;
   const htmlWithBundle = htmlTemplate

@@ -88,7 +88,7 @@ export function useDetailPencilBase(
 ): InkSketch | null {
   const palette = useActivePalette();
   const [built, setBuilt] = useState<InkSketch | null>(null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: textureKey names the texture image
+  // biome-ignore lint/correctness/useExhaustiveDependencies: textureKey names the body the sketch is seeded by
   useEffect(() => {
     if (!enabled || !textureImage || detail < REMOTE_BELOW) {
       setBuilt(null);

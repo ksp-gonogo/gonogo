@@ -44,6 +44,56 @@ namespace Sitrep.Host.Tests
             }
         }
 
+        [Fact]
+        public void LargeFramesGoOneAtATimeEachOnlyOnceTheSocketHasWrittenThePrevious()
+        {
+            var connection = new BusyConnection { BusyAfterSend = true };
+            var outbox = new ChannelOutbox(connection);
+            try
+            {
+                outbox.PublishBulk("bodies.texture.Kerbin", Encoding.UTF8.GetBytes("kerbin"));
+                outbox.PublishBulk("bodies.texture.Mun", Encoding.UTF8.GetBytes("mun"));
+                outbox.PublishBulk("bodies.texture.Duna", Encoding.UTF8.GetBytes("duna"));
+                Assert.Equal(new[] { "kerbin" }, connection.WaitForSends(1, TimeSpan.FromSeconds(2)));
+
+                outbox.PublishReliable(Encoding.UTF8.GetBytes("ack"));
+                Assert.Equal(new[] { "kerbin", "ack" }, connection.WaitForSends(2, TimeSpan.FromSeconds(2)));
+                Thread.Sleep(150);
+                Assert.Equal(new[] { "kerbin", "ack" }, connection.Sent());
+
+                connection.Busy = false;
+                Assert.Equal(new[] { "kerbin", "ack", "mun" }, connection.WaitForSends(3, TimeSpan.FromSeconds(2)));
+                connection.Busy = false;
+                Assert.Equal(new[] { "kerbin", "ack", "mun", "duna" }, connection.WaitForSends(4, TimeSpan.FromSeconds(2)));
+            }
+            finally
+            {
+                outbox.Stop();
+            }
+        }
+
+        [Fact]
+        public void ClearingATopicDropsItsLargeFrameThatHasNotGoneYet()
+        {
+            var connection = new BusyConnection { Busy = true };
+            var outbox = new ChannelOutbox(connection);
+            try
+            {
+                outbox.PublishBulk("bodies.texture.Kerbin", Encoding.UTF8.GetBytes("old kerbin"));
+                outbox.PublishBulk("bodies.texture.Mun", Encoding.UTF8.GetBytes("mun"));
+                outbox.ClearTopic("bodies.texture.Kerbin");
+                outbox.PublishBulk("bodies.texture.Kerbin", Encoding.UTF8.GetBytes("new kerbin"));
+
+                connection.Busy = false;
+
+                Assert.Equal(new[] { "mun", "new kerbin" }, connection.WaitForSends(2, TimeSpan.FromSeconds(2)));
+            }
+            finally
+            {
+                outbox.Stop();
+            }
+        }
+
         private sealed class BusyConnection : ITransportConnection
         {
             private readonly object _lock = new object();
@@ -55,6 +105,9 @@ namespace Sitrep.Host.Tests
                 get => _busy;
                 set => _busy = value;
             }
+
+            /// <summary>Whether each send leaves the socket writing until the test sets <see cref="Busy"/> back to false.</summary>
+            public bool BusyAfterSend { get; set; }
 
             public string Id { get; } = "busy-connection";
 
@@ -69,6 +122,10 @@ namespace Sitrep.Host.Tests
                 lock (_lock)
                 {
                     _sent.Add(Encoding.UTF8.GetString(payload.Array!, payload.Offset, payload.Count));
+                }
+                if (BusyAfterSend)
+                {
+                    _busy = true;
                 }
                 return true;
             }

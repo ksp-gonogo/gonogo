@@ -185,6 +185,16 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   // (cleared only when the client is rebuilt) so a station reconnecting after a gap
   // still gets the last-known value immediately.
   const cacheRef = useRef(new Map<string, StreamData<unknown>[]>());
+  /*
+   * The newest binary-lane frame per Topic that is state rather than a
+   * transmission, such as a body's surface map, which the mod sends once per
+   * subscription and so never again for a station subscribing after the host.
+   * Replayed only to a station that subscribes the Topic, never on connect:
+   * a map is megabytes, and a station that never draws the body has no use for it.
+   */
+  const binaryRef = useRef(
+    new Map<string, Extract<ServerMessage, { type: "stream-binary" }>>(),
+  );
   /** The highest timeline epoch any cached frame carried, which the run of a quiet topic is held to. */
   const newestEpochRef = useRef(0);
   /*
@@ -307,6 +317,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     // A rebuilt client is a new game process, whose frames carry a lower epoch than anything cached from the last: replaying those would make a station's fresh store refuse the new game.
     if (previousClient.current && previousClient.current !== client) {
       cacheRef.current.clear();
+      binaryRef.current.clear();
       newestEpochRef.current = 0;
       acksRef.current.clear();
       supersededRef.current.clear();
@@ -315,6 +326,9 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     }
     previousClient.current = client;
     return client.onRawMessage((message) => {
+      if (message.type === "stream-binary" && !isTransmission(message)) {
+        binaryRef.current.set(message.topic, message);
+      }
       if (message.type === "stream-data" && !isTransmission(message)) {
         let run = cacheRef.current.get(message.topic);
         if (!run) {
@@ -415,10 +429,15 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
           topic === "comms.delay" && !reportsOneWayDelay(run[run.length - 1])
             ? [...run].reverse().find(reportsOneWayDelay)
             : undefined;
+        const binary = binaryRef.current.get(topic);
         const frames: ServerMessage[] = [
           ...(figure ? [figure] : []),
           ...(ack ? [ack] : []),
           ...run,
+          ...(binary &&
+          (binary.meta.timelineEpoch ?? 0) >= newestEpochRef.current
+            ? [binary]
+            : []),
         ];
         return frames.map(
           (message) =>

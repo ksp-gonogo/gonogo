@@ -181,17 +181,12 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       expect(barrel.getBody("Kerbin")).toBeUndefined();
     });
 
-    it("registers the whole stock system, and threads the texture base URL", () => {
+    it("registers the whole stock system", () => {
       resetTestHost();
       barrel.clearBodies();
-      barrel.registerStockBodies("/gonogo/bodies");
+      barrel.registerStockBodies();
       // The star plus every planet and moon: a count rather than a list, because the point is that nothing silently dropped out of the data file.
       expect(barrel.getAllBodies().length).toBeGreaterThanOrEqual(16);
-      expect(barrel.getBody("Kerbin")?.texture).toBe(
-        "/gonogo/bodies/Kerbin_Color.png",
-      );
-      // Kerbol has no texture, so the base URL must not be applied blindly.
-      expect(barrel.getBody("Sun")?.texture).toBeUndefined();
       barrel.clearBodies();
     });
 

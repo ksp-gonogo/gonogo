@@ -16,6 +16,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { pageCounter } from "../analytics/pageCounts";
+import { recordBinaryLaneBytes } from "./binaryLaneBudgets";
 import { KspCalendarObserver } from "./KspCalendarObserver";
 import { StreamSummaryLog } from "./StreamSummaryLog";
 import {
@@ -81,7 +82,7 @@ const SITREP_STREAM_BUDGET = new PerfBudget({
  *
  * What it actually catches is a producer that forgot to batch: unbatched, those
  * same three talkers are 150 frames/sec, still under this cap but ten times
- * where they should be, which is why {@link SITREP_BINARY_BYTES_BUDGET} is
+ * where they should be, which is why the binary-lane byte budgets in `binaryLaneBudgets.ts` are
  * counted alongside it rather than instead of it.
  */
 const SITREP_BINARY_FRAME_BUDGET = new PerfBudget({
@@ -89,28 +90,6 @@ const SITREP_BINARY_FRAME_BUDGET = new PerfBudget({
   threshold: 250,
   windowMs: 1000,
   unit: "frames",
-});
-
-/**
- * Payload bytes arriving on the binary lane, per second, summed across every
- * segment of every frame.
- *
- * A real byte count, unlike `StreamFrameInfo.byteLength` next door, which is a
- * UTF-16 string length. Sized identically to the shipped `RADIO_BYTES_BUDGET`
- * and for its stated reason: loose enough to survive a codec that overshoots
- * its bitrate hint (firefox does, measured at 4338 B/s against a 24 kbit hint),
- * tight enough that raw PCM cannot hide behind it, since int16 at 16 kHz is
- * 32 kB/s and trips this inside a second.
- *
- * The pair is what makes the frame budget diagnostic. Bytes high with frames
- * low is a producer sending more than it should; frames high with bytes low is
- * a producer that is not batching. Either alone reads as ambiguous load.
- */
-const SITREP_BINARY_BYTES_BUDGET = new PerfBudget({
-  name: "Telemetry binary-lane bytes/sec",
-  threshold: 40_000,
-  windowMs: 1000,
-  unit: "bytes",
 });
 
 function hasGameRestartSignal(
@@ -239,7 +218,7 @@ export function SitrepTelemetryProvider({
           onStreamFrame: () => SITREP_STREAM_BUDGET.record(),
           onBinaryFrame: (info) => {
             SITREP_BINARY_FRAME_BUDGET.record();
-            SITREP_BINARY_BYTES_BUDGET.record(info.byteLength);
+            recordBinaryLaneBytes(info);
           },
         })
       : undefined;

@@ -505,6 +505,75 @@ describe("SitrepPeerRelay", () => {
     view.unmount();
   });
 
+  it("answers a station subscribing a body's map after the host, and sends no map to a station that only connects", async () => {
+    const peerHost = makeFakeHost();
+    const { transport, view } = renderRelay(peerHost);
+
+    act(() => peerHost.connectPeer("station-a"));
+    act(() => peerHost.claim("bodies.texture.Mun"));
+    await waitFor(() =>
+      expect(transport.isSubscribed("bodies.texture.Mun")).toBe(true),
+    );
+    const map = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+    act(() =>
+      transport.emitRaw({
+        type: "stream-binary",
+        topic: "bodies.texture.Mun",
+        segments: [map],
+        meta: makeMeta(),
+      }),
+    );
+
+    act(() => peerHost.connectPeer("station-b"));
+    await waitFor(() =>
+      expect(peerHost.getConnectedPeerIds()).toContain("station-b"),
+    );
+    expect(
+      peerHost.sentToPeer.some(
+        (e) =>
+          e.peerId === "station-b" &&
+          e.msg.type === "sitrep-frame" &&
+          e.msg.message.type === "stream-binary",
+      ),
+    ).toBe(false);
+
+    expect(peerHost.cachedFrames("bodies.texture.Mun")).toMatchObject([
+      {
+        type: "sitrep-frame",
+        message: {
+          type: "stream-binary",
+          topic: "bodies.texture.Mun",
+          segments: [map],
+        },
+      },
+    ]);
+
+    view.unmount();
+  });
+
+  it("never replays a radio transmission to a station subscribing late", async () => {
+    const peerHost = makeFakeHost();
+    const { transport, view } = renderRelay(peerHost);
+
+    act(() => peerHost.connectPeer("station-a"));
+    act(() => peerHost.claim("commcast.radio"));
+    await waitFor(() =>
+      expect(transport.isSubscribed("commcast.radio")).toBe(true),
+    );
+    act(() =>
+      transport.emitRaw({
+        type: "stream-binary",
+        topic: "commcast.radio",
+        segments: [new Uint8Array([1, 2, 3])],
+        meta: makeMeta(),
+      }),
+    );
+
+    expect(peerHost.cachedFrames("commcast.radio")).toEqual([]);
+
+    view.unmount();
+  });
+
   it("relays event frames live but never backfills them to a later-connecting station", async () => {
     const peerHost = makeFakeHost();
     const { transport, view } = renderRelay(peerHost);

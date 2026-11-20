@@ -10,7 +10,7 @@ import {
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { Quality, SettingKind } from "@ksp-gonogo/sitrep-sdk";
-import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
+import { MockDataSource, makeMeta } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import {
   AugmentSettingsProvider,
@@ -226,8 +226,9 @@ describe("GroundTrackComponent", () => {
     });
   }
 
-  it("marks the base canvas pending until the body's picture is drawn", async () => {
-    const images: Array<{ onload: (() => void) | null }> = [];
+  /** Stand-ins for the browser's image loading and canvas, which jsdom has neither of; returns every image the map asked for. */
+  function stubImageAndCanvas() {
+    const images: Array<{ src: string; onload: (() => void) | null }> = [];
     vi.stubGlobal(
       "Image",
       class {
@@ -243,15 +244,54 @@ describe("GroundTrackComponent", () => {
       get: (_target, key) => (key === "canvas" ? undefined : () => undefined),
     });
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(noop);
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:kerbin-map");
+    return images;
+  }
+
+  function sendMap(
+    fixture: StreamFixture,
+    topic: string,
+    segments: Uint8Array[],
+  ) {
+    act(() =>
+      fixture.transport.emitRaw({
+        type: "stream-binary",
+        topic,
+        segments,
+        meta: makeMeta(),
+      }),
+    );
+  }
+
+  it("paints plain while the mod's map is on its way, then the map once it is drawn", async () => {
+    const images = stubImageAndCanvas();
     const { fixture } = renderMap();
     await emitVessel(fixture, { body: "Kerbin" });
 
     const canvas = screen.getByTestId("ground-track-base-canvas");
-    expect(images.length).toBeGreaterThan(0);
+    expect(fixture.transport.isSubscribed("bodies.texture.Kerbin")).toBe(true);
+    expect(images).toHaveLength(0);
+    expect(canvas.dataset.mapBase).toBe("plain");
+
+    sendMap(fixture, "bodies.texture.Kerbin", [new Uint8Array([0x89, 0x50])]);
+    expect(images.at(-1)?.src).toBe("blob:kerbin-map");
     expect(canvas.dataset.mapBase).toBe("pending");
 
     act(() => images.at(-1)?.onload?.());
     expect(canvas.dataset.mapBase).toBe("textured");
+  });
+
+  it("paints plain for a body the mod has no map for", async () => {
+    const images = stubImageAndCanvas();
+    const { fixture } = renderMap();
+    await emitVessel(fixture, { body: "Sun" });
+
+    sendMap(fixture, "bodies.texture.Sun", []);
+
+    expect(images).toHaveLength(0);
+    expect(screen.getByTestId("ground-track-base-canvas").dataset.mapBase).toBe(
+      "plain",
+    );
   });
 
   it("renders without crashing with no data", () => {

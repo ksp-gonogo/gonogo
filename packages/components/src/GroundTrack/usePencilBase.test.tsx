@@ -16,7 +16,7 @@ describe("usePencilBase", () => {
     // jsdom has no 2D canvas, which is the same failure a tainted cross-origin texture raises.
     const texture = document.createElement("img");
     const { result } = renderHook(() =>
-      usePencilBase(texture, "bodies/Duna_Color.png", 0.3, 800),
+      usePencilBase(texture, "Duna", 0.3, 800),
     );
     expect(result.current).toBeNull();
   });

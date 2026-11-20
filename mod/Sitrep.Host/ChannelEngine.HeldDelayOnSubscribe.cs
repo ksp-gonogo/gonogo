@@ -34,7 +34,7 @@ namespace Sitrep.Host
                 Source = CommsDelaySource.SignalDelay,
                 Meta = new PayloadMeta { Source = _lastActiveVesselId != null ? "vessel:" + _lastActiveVesselId : "game" },
             };
-            SendKept(session, topic, payload, Staleness.LastBeforeBlackout);
+            SendKept(session, topic, payload, opaque: false, Staleness.LastBeforeBlackout);
         }
     }
 }

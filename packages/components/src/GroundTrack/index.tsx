@@ -7,6 +7,7 @@ import {
   latLonToMap,
   registerComponent,
 } from "@ksp-gonogo/core";
+import { useBodyTextureUrl } from "@ksp-gonogo/data";
 import { Switch } from "@ksp-gonogo/ui";
 import {
   Badge,
@@ -209,6 +210,8 @@ function GroundTrackComponent({
     universalTime: telemetry.universalTime,
   });
 
+  const bodyTexture = useBodyTextureUrl(targetBodyId) ?? undefined;
+
   const {
     baseRef,
     overlayRef,
@@ -219,7 +222,8 @@ function GroundTrackComponent({
   } = useMapPainting({
     containerSize,
     camera,
-    bodyTexture: body?.texture,
+    bodyId: targetBodyId,
+    bodyTexture,
     bodyColor: body?.color,
     bodyDetail: telemetry.bodyDetail,
     bodyVisited: telemetry.bodyVisited,

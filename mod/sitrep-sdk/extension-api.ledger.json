@@ -41007,6 +41007,10 @@
   "pending": {
     "breaks": [
       {
+        "key": "sitrep-sdk . BodyDefinition#texture?",
+        "note": "Removed: a body's surface map comes from the mod on bodies.texture.<body>, for every body alike"
+      },
+      {
         "key": "sitrep-sdk . COMMAND_IDS",
         "note": "Adds the command id vessel.setPartField, which sets one part-window field on a part in flight"
       },
@@ -41033,6 +41037,10 @@
       {
         "key": "sitrep-sdk . SlotRegistry#\"mode-sections.replay\"",
         "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk . registerStockBodies",
+        "note": "Takes no texture base URL: the stock table carries no surface maps"
       },
       {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#requires?",

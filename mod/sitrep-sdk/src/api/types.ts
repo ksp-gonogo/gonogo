@@ -1541,9 +1541,7 @@ export interface BodyDefinition {
   radius: number;
   /** Standard gravitational parameter (GM) in m³/s². */
   gm?: number;
-  /** Path or URL to a surface texture image (equirectangular projection). */
-  texture?: string;
-  /** Fallback display colour (CSS colour string) used when no texture is available. */
+  /** Display colour (CSS colour string) a body is drawn in where the mod supplies no surface map for it. */
   color?: string;
   /** Longitude correction in degrees added to a reported longitude before mapping. */
   longitudeOffset?: number;

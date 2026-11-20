@@ -4,6 +4,15 @@ import { encodeFrames } from "./endpointFraming";
 import { FramedLink } from "./framedLink";
 import { TypedListeners } from "./typedListeners";
 
+/** A message that packs to more than this goes out paced by the station's queue rather than all at once. */
+export const PACED_ABOVE_BYTES = 256 * 1024;
+/** Pieces of a paced message are handed to the endpoint while it holds less than this for the station, half of the 4 MiB at which it drops one. */
+export const PACED_QUEUE_BYTES = 2 * 1024 * 1024;
+/** The endpoint reports a station's queue every 500 ms when it has changed, so with no report for this long its last one still holds. */
+export const QUEUE_REPORT_SETTLED_MS = 1_200;
+/** How often paced pieces waiting on the station's queue look at it again. */
+const PACED_RETRY_MS = 100;
+
 /** Where a station on the endpoint is: the home network or the internet. */
 export type EndpointPath = "lan" | "internet";
 
@@ -14,8 +23,12 @@ export type EndpointPath = "lan" | "internet";
 export class EndpointConnection extends FramedLink {
   /** Set when the endpoint reports the station's data channel open. */
   path: EndpointPath | null = null;
-  /** The bytes waiting in the endpoint to go out to the station, as it last reported, or null until the station opens. The endpoint reports only changes, from nothing queued. */
-  queuedBytes: number | null = null;
+  private reportedQueue: number | null = null;
+  /* Paced pieces handed to the endpoint since its last report, and when the last of them went. */
+  private sentSinceReport = 0;
+  private lastPacedAt = 0;
+  private readonly paced: Uint8Array<ArrayBuffer>[] = [];
+  private pacedTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     /** The station's broker peer id, which approvals and every per-station record are keyed by. */
@@ -31,9 +44,74 @@ export class EndpointConnection extends FramedLink {
     super(peer);
   }
 
+  /** The bytes waiting in the endpoint to go out to the station, as it last reported, or null until the station opens. The endpoint reports only changes, from nothing queued. */
+  get queuedBytes(): number | null {
+    return this.reportedQueue;
+  }
+
+  set queuedBytes(bytes: number | null) {
+    this.reportedQueue = bytes;
+    this.sentSinceReport = 0;
+    this.sendPaced();
+  }
+
+  /*
+   * The endpoint drops a station once 4 MiB waits for it, and one message can
+   * be larger than that: a body's surface map is up to 9 MB. So a large
+   * message's pieces go out only while the endpoint holds less than
+   * PACED_QUEUE_BYTES for the station, counting what was sent since its last
+   * report, in the order they were sent. Smaller messages go at once, between
+   * them; the reader reassembles pieces by message id.
+   */
+  send(message: Packable): void {
+    if (!this.open) return;
+    const frames = encodeFrames(message);
+    const size = frames.reduce((n, f) => n + f.byteLength, 0);
+    if (size <= PACED_ABOVE_BYTES) {
+      for (const frame of frames) this.sendTo(this.sid, frame);
+      return;
+    }
+    this.paced.push(...frames);
+    this.sendPaced();
+  }
+
+  private sendPaced(): void {
+    if (!this.open) return;
+    if (
+      this.sentSinceReport > 0 &&
+      performance.now() - this.lastPacedAt > QUEUE_REPORT_SETTLED_MS
+    ) {
+      this.sentSinceReport = 0;
+    }
+    let frame = this.paced[0];
+    while (
+      frame &&
+      (this.reportedQueue ?? 0) + this.sentSinceReport < PACED_QUEUE_BYTES
+    ) {
+      this.paced.shift();
+      this.sendTo(this.sid, frame);
+      this.sentSinceReport += frame.byteLength;
+      this.lastPacedAt = performance.now();
+      frame = this.paced[0];
+    }
+    if (this.paced.length > 0 && this.pacedTimer === null) {
+      this.pacedTimer = setTimeout(() => {
+        this.pacedTimer = null;
+        this.sendPaced();
+      }, PACED_RETRY_MS);
+    }
+  }
+
+  private dropPaced(): void {
+    this.paced.length = 0;
+    if (this.pacedTimer !== null) clearTimeout(this.pacedTimer);
+    this.pacedTimer = null;
+  }
+
   /** The endpoint always lets what the station has been sent drain before it closes. */
   close(_options?: { flush?: boolean }): void {
     if (this.isEnded) return;
+    this.dropPaced();
     this.sendClose(this.sid);
     this.finished();
   }
@@ -57,7 +135,7 @@ export class EndpointConnection extends FramedLink {
   markOpen(path: EndpointPath | null): void {
     if (this.isEnded || this.open) return;
     this.path = path;
-    this.queuedBytes = 0;
+    this.reportedQueue = 0;
     this.opened();
   }
 
@@ -68,6 +146,7 @@ export class EndpointConnection extends FramedLink {
 
   /** @internal */
   markClosed(): void {
+    this.dropPaced();
     this.finished();
   }
 }

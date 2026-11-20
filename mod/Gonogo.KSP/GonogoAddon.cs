@@ -93,6 +93,7 @@ namespace Gonogo.KSP
         // against the same store every consumer is subscribed to.
         private SettingsStore? _settings;
         private ChannelEngine? _engine;
+        private BodyTextureChannels? _bodyTextures;
         private GameLoadReporter? _loadReporter;
 
         /// <summary>The running engine, for the scenario that saves what store-and-forward holds; null before it starts.</summary>
@@ -214,6 +215,8 @@ namespace Gonogo.KSP
                 RegisterCoreUplink(_engine, new CraftFileChannels());
                 // The parts.shape.<key> namespace: each kind of part's reduced meshes.
                 RegisterCoreUplink(_engine, new PartShapeChannels());
+                // The bodies.texture.<body> namespace: each body's surface map, read from the game.
+                _bodyTextures = RegisterCoreUplink(_engine, new BodyTextureChannels());
                 // Command centres: the stock home-node + crewed-
                 // vessel sources feed BOTH set-vantage validation (the engine's own
                 // registry) AND the per-(authority, subject) delay pass + roster
@@ -507,6 +510,14 @@ namespace Gonogo.KSP
             // blocks (bounded) waiting on exactly this drain. Never throws.
             _engine?.RunPendingCommands();
             _loadReporter?.Update();
+            try
+            {
+                _bodyTextures?.UpdateOnMain();
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.ErrorLimited("body maps failed to advance", ex);
+            }
             try
             {
                 SilenceTracking.SilenceForecasts.AdvanceOnMain();

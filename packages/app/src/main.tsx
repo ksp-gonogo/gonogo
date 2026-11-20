@@ -46,8 +46,7 @@ logger.info(`gonogo v${VERSION} (build ${BUILD_TIME})`);
 installSocketTrace();
 installGlobalErrorHooks(window, logger);
 
-// Pass the Vite base URL so texture paths resolve correctly under sub-path deployments (e.g. /gonogo/bodies/ on GitHub Pages).
-registerStockBodies(`${import.meta.env.BASE_URL}bodies`);
+registerStockBodies();
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Could not find root node.");

@@ -38,6 +38,8 @@ import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 interface MapPaintingInputs {
   containerSize: { w: number; h: number } | null;
   camera: Camera;
+  /** The body's name, which seeds the sketch so it draws the same on every screen. */
+  bodyId: string | undefined;
   bodyTexture: string | undefined;
   bodyColor: string | undefined;
   /** How finely the body's pencil map is drawn, 0 to 1. */
@@ -114,6 +116,7 @@ export function useBodyTexture(bodyTexture: string | undefined) {
 export function useMapPainting({
   containerSize,
   camera,
+  bodyId,
   bodyTexture,
   bodyColor,
   bodyDetail,
@@ -144,7 +147,7 @@ export function useMapPainting({
   const { textureImage, textureReady } = useBodyTexture(bodyTexture);
   const detailSketch = useDetailPencilBase(
     textureImage,
-    bodyTexture,
+    bodyId,
     bodyDetail,
     textureImage !== null &&
       baseIsSketch(
@@ -154,7 +157,7 @@ export function useMapPainting({
   );
   const pencil = usePencilBase(
     textureImage,
-    bodyTexture,
+    bodyId,
     bodyDetail,
     containerSize?.w,
   );

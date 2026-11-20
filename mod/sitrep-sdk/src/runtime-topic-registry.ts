@@ -151,6 +151,11 @@ export const DYNAMIC_WHOLE_TOPIC_PREFIXES: readonly string[] = [
    */
   "parts.shape.",
   /*
+   * bodies.texture.<body>: one body's surface map as PNG bytes on the binary
+   * lane. The mod reads a body's map only once its topic is subscribed.
+   */
+  "bodies.texture.",
+  /*
    * alarm.game.craft.<guid>.list: the game alarms whose time the game works
    * out from that craft, revealed after the signal delay from it.
    */

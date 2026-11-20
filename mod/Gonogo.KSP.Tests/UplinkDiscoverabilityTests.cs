@@ -54,6 +54,8 @@ namespace Gonogo.KSP.Tests
             "CraftFileChannels",
             // Each kind of part's reduced meshes: ships inside Gonogo.dll, constructed by the addon beside CraftFileChannels.
             "PartShapeChannels",
+            // Each body's surface map: ships inside Gonogo.dll, constructed by the addon, which also drives its reads every frame.
+            "BodyTextureChannels",
         };
 
         private static readonly Regex UplinkClass = new Regex(

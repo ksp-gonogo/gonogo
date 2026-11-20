@@ -63,6 +63,7 @@ export type { AutoRecordControllerProps } from "./FlightsManager/AutoRecordContr
 export { AutoRecordController } from "./FlightsManager/AutoRecordController";
 export * from "./FlightsManager/autoRecordStatus";
 export { MissionHistorySource } from "./FlightsManager/MissionHistorySource";
+export * from "./hooks/useBodyTexture";
 export * from "./hooks/useCraftFileTopology";
 export * from "./hooks/useDataSeries";
 export * from "./hooks/useFlight";

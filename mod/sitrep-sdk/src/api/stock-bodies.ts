@@ -15,15 +15,12 @@ import { registerBody } from "./bodies";
 /**
  * Registers every stock KSP body with {@link registerBody}, keyed by the name
  * the telemetry stream uses, so {@link getBody} finds a body by name.
- * `baseUrl` is where the body texture images are served from. Useful for
- * giving every map and diagram the stock planets and moons to draw. Used by the
- * app at startup.
+ * Useful for giving every map and diagram the stock planets and moons to
+ * draw. Used by the app at startup.
  *
  * @category Solar system and fleet
  */
-export function registerStockBodies(baseUrl = "bodies"): void {
-  const tex = (name: string) => `${baseUrl}/${name}_Color.png`;
-
+export function registerStockBodies(): void {
   // ── Star ─────────────────────────────────────────────────────────────────
   registerBody({
     id: "Sun",
@@ -56,7 +53,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 8.1717302e12,
     color: "#9B59B6",
     parent: "Sun",
-    texture: tex("Eve"),
     hasAtmosphere: true,
     maxAtmosphere: 90000,
     // 5 atm at sea level, very thick.
@@ -75,7 +71,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 8289449.8,
     color: "#A0855B",
     parent: "Eve",
-    texture: tex("Gilly"),
     hasAtmosphere: false,
     maxAtmosphere: 0,
     rotationPeriod: 28255,
@@ -88,7 +83,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 3.5316e12,
     color: "#1A6B8A",
     parent: "Sun",
-    texture: tex("Kerbin"),
     // Texture prime meridian is offset 90° east of the stream's reported frame.
     // Tune this value if the vessel dot appears misaligned on the map.
     longitudeOffset: 90,
@@ -124,7 +118,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 6.5138398e10,
     color: "#888888",
     parent: "Kerbin",
-    texture: tex("Mun"),
     hasAtmosphere: false,
     maxAtmosphere: 0,
     rotationPeriod: 138984.38,
@@ -137,7 +130,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 1.7658e9,
     color: "#B8D4B8",
     parent: "Kerbin",
-    texture: tex("Minmus"),
     hasAtmosphere: false,
     maxAtmosphere: 0,
     rotationPeriod: 40400,
@@ -150,7 +142,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 3.0136321e11,
     color: "#C1440E",
     parent: "Sun",
-    texture: tex("Duna"),
     hasAtmosphere: true,
     maxAtmosphere: 50000,
     // ~0.067 atm at sea level: too thin for jet engines, just enough for chutes.
@@ -167,7 +158,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 1.8568369e10,
     color: "#9B9B8B",
     parent: "Duna",
-    texture: tex("Ike"),
     hasAtmosphere: false,
     maxAtmosphere: 0,
     rotationPeriod: 65517.862,
@@ -180,7 +170,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 2.1484489e10,
     color: "#7A7A6A",
     parent: "Sun",
-    texture: tex("Dres"),
     hasAtmosphere: false,
     maxAtmosphere: 0,
     rotationPeriod: 34800,
@@ -210,7 +199,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 1.962e12,
     color: "#1E6091",
     parent: "Jool",
-    texture: tex("Laythe"),
     hasAtmosphere: true,
     maxAtmosphere: 50000,
     // ~0.6 atm at sea level: breathable-ish on Jool's tropical moon.
@@ -229,7 +217,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 2.074815e11,
     color: "#B0C4D8",
     parent: "Jool",
-    texture: tex("Vall"),
     hasAtmosphere: false,
     maxAtmosphere: 0,
     rotationPeriod: 105962.09,
@@ -242,7 +229,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 2.82528e12,
     color: "#A0A080",
     parent: "Jool",
-    texture: tex("Tylo"),
     hasAtmosphere: false,
     maxAtmosphere: 0,
     rotationPeriod: 211926.36,
@@ -255,7 +241,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 2.4868349e9,
     color: "#6B5B45",
     parent: "Jool",
-    texture: tex("Bop"),
     hasAtmosphere: false,
     maxAtmosphere: 0,
     rotationPeriod: 544507.43,
@@ -268,7 +253,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 7.2170208e8,
     color: "#D4C878",
     parent: "Jool",
-    texture: tex("Pol"),
     hasAtmosphere: false,
     maxAtmosphere: 0,
     rotationPeriod: 901902.62,
@@ -281,7 +265,6 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     gm: 7.4410815e10,
     color: "#E8E8F0",
     parent: "Sun",
-    texture: tex("Eeloo"),
     hasAtmosphere: false,
     maxAtmosphere: 0,
     rotationPeriod: 19460,

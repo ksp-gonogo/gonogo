@@ -143,6 +143,81 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public async Task AnOpaqueKeptValueReachesEachSubscriberAsOneBinaryFrame()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new KeptTestUplink(opaque: true);
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                var map = new byte[] { 0x89, 0x50, 0x4E, 0x47, 1, 2, 3 };
+                await using var first = await WsTestHarness.TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(first, Topic, Timeout);
+                uplink.KeepOnNextTick("fuelTank", new[] { map });
+                engine.TickAndWait(1.0, At(1.0), Timeout);
+                AssertMap(await first.ReceiveBinaryAsync(Timeout), map);
+
+                await using var late = await WsTestHarness.TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(late, Topic, Timeout);
+                AssertMap(await late.ReceiveBinaryAsync(Timeout), map);
+                await first.AssertNoBinaryFrameArrivesAsync(Quiet);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+
+            static void AssertMap(byte[] frame, byte[] map)
+            {
+                Assert.True(BinaryFrameCodec.TryParseStreamBinary(frame, 0, frame.Length, out var header, out var segments, out var reason), reason);
+                Assert.Equal(Topic, header.Topic);
+                Assert.Equal(map, Assert.Single(segments));
+            }
+        }
+
+        [Fact]
+        public async Task ABurstOfLargeValuesKeptFromAnyThreadReachesTheSubscriberWholeWithNoTick()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new KeptTestUplink(opaque: true);
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                const int Bodies = 12;
+                await using var client = await WsTestHarness.TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                for (var i = 0; i < Bodies; i++)
+                {
+                    await SubscribeAsync(client, KeptTestUplink.Prefix + "body" + i, Timeout);
+                }
+
+                /* Twelve 5 MB maps at once are 60 MB, past the 32 MiB a connection may hold unwritten. */
+                for (var i = 0; i < Bodies; i++)
+                {
+                    var map = new byte[5 * 1024 * 1024];
+                    map[0] = (byte)i;
+                    uplink.KeepNow("body" + i, new[] { map });
+                }
+
+                var received = new List<string>();
+                for (var i = 0; i < Bodies; i++)
+                {
+                    var frame = await client.ReceiveBinaryAsync(Timeout);
+                    Assert.True(BinaryFrameCodec.TryParseStreamBinary(frame, 0, frame.Length, out var header, out var segments, out var reason), reason);
+                    var map = Assert.Single(segments);
+                    Assert.Equal(5 * 1024 * 1024, map.Length);
+                    received.Add(header.Topic);
+                }
+                Assert.Equal(Enumerable.Range(0, Bodies).Select(i => KeptTestUplink.Prefix + "body" + i), received);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>A kept namespace whose values are kept, and whose topics are trimmed, on the Courier thread from a sampled source, as part shapes are.</summary>
         private sealed class KeptTestUplink : ISitrepUplink
         {
@@ -153,6 +228,13 @@ namespace Sitrep.Host.IntegrationTests
             private readonly ConcurrentQueue<(ChannelEngine Engine, string Topic)> _toTrim = new ConcurrentQueue<(ChannelEngine, string)>();
             private readonly ConcurrentQueue<string> _subscribed = new ConcurrentQueue<string>();
 
+            private readonly bool _opaque;
+
+            public KeptTestUplink(bool opaque = false)
+            {
+                _opaque = opaque;
+            }
+
             public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "kept-test", Version = "1.0.0" };
 
             public UplinkHealth Health() => UplinkHealth.Healthy;
@@ -160,6 +242,8 @@ namespace Sitrep.Host.IntegrationTests
             public string[] Subscribed => _subscribed.ToArray();
 
             public void KeepOnNextTick(string subTopic, object payload) => _toKeep.Enqueue((subTopic, payload));
+
+            public void KeepNow(string subTopic, object payload) => _source!.KeepFromAnyThread(subTopic, payload);
 
             public void TrimOnNextTick(ChannelEngine engine, string topic) => _toTrim.Enqueue((engine, topic));
 
@@ -171,6 +255,7 @@ namespace Sitrep.Host.IntegrationTests
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                    OpaquePayload = _opaque,
                 });
                 _source.OnSubscribed(topic => _subscribed.Enqueue(topic));
                 host.AddSampledSource(_ => new object(), _ =>

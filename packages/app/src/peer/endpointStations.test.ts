@@ -10,7 +10,11 @@ import {
   vi,
 } from "vitest";
 import { encodeFrames, FrameReader } from "./endpointFraming";
-import { EndpointStations } from "./endpointStations";
+import {
+  EndpointStations,
+  PACED_QUEUE_BYTES,
+  QUEUE_REPORT_SETTLED_MS,
+} from "./endpointStations";
 
 const URL = "ws://localhost:3002/stations";
 const link = ws.link(URL);
@@ -241,6 +245,68 @@ describe("the main screen's endpoint socket", () => {
     endpoint.send({ type: "queued", sid, bytes: 300_000 });
     await vi.waitFor(() => expect(conn.queuedBytes).toBe(300_000));
     stations.stop();
+  });
+
+  describe("a message larger than the endpoint holds for a station", () => {
+    async function openStation() {
+      const endpoint = fakeEndpoint();
+      const stations = await started();
+      const { conn } = stations.join("station-a", "v=a");
+      await vi.waitFor(() => expect(endpoint.control).toHaveLength(1));
+      const sid = Number(endpoint.control[0]?.sid);
+      endpoint.send({ type: "answer", sid, sdp: "x" });
+      endpoint.send({ type: "open", sid });
+      await vi.waitFor(() => expect(conn.open).toBe(true));
+      const sentBytes = () =>
+        endpoint.data
+          .filter((d) => d.sid === sid)
+          .reduce((n, d) => n + d.bytes.byteLength, 0);
+      const read = () => {
+        const reader = new FrameReader();
+        const messages: unknown[] = [];
+        for (const d of endpoint.data.filter((d) => d.sid === sid)) {
+          const message = reader.push(d.bytes);
+          if (message !== undefined) messages.push(message);
+        }
+        return messages;
+      };
+      return { endpoint, stations, conn, sid, sentBytes, read };
+    }
+
+    it("goes out only while the endpoint holds less than half its limit for the station, and the small ones go between", async () => {
+      const { endpoint, stations, conn, sid, sentBytes, read } =
+        await openStation();
+      const map = new Uint8Array(9_000_000).fill(7);
+
+      conn.send({ type: "map", map });
+      conn.send({ type: "ping" });
+      await vi.waitFor(() => expect(read()).toContainEqual({ type: "ping" }));
+      expect(sentBytes()).toBeLessThan(PACED_QUEUE_BYTES + 20_000);
+
+      for (let reported = 1; read().length < 2 && reported < 20; reported++) {
+        const before = sentBytes();
+        endpoint.send({ type: "queued", sid, bytes: reported % 2 });
+        await vi.waitFor(() => expect(sentBytes()).toBeGreaterThan(before));
+      }
+
+      const [ping, whole] = read() as [unknown, { map: Uint8Array }];
+      expect(ping).toEqual({ type: "ping" });
+      expect(whole.map.byteLength).toBe(9_000_000);
+      stations.stop();
+    });
+
+    it("goes on without a report once the endpoint has had time to report a change and did not", async () => {
+      const { stations, conn, sentBytes, read } = await openStation();
+
+      conn.send({ type: "map", map: new Uint8Array(3_000_000) });
+      await vi.waitFor(() => expect(sentBytes()).toBeGreaterThan(0));
+      expect(read()).toHaveLength(0);
+
+      await vi.waitFor(() => expect(read()).toHaveLength(1), {
+        timeout: QUEUE_REPORT_SETTLED_MS * 3,
+      });
+      stations.stop();
+    });
   });
 
   it("carries messages each way for each station once it opens, and keeps two stations apart", async () => {

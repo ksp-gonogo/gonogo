@@ -118,6 +118,9 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // vantage, like the body catalogue; there is no craft whose link it crosses.
   "mod/Gonogo.KSP/PartShapeChannels.cs": 1,
 
+  // bodies.texture.<body>: a body's surface map, read from the install's art. A fact about the install, the same for every vantage, like the body catalogue; there is no craft whose link it crosses.
+  "mod/Gonogo.KSP/BodyTextureChannels.cs": 1,
+
   // spaceCenter.scene: which screen the game is showing, a session fact held nowhere, same class as time.warp.
   //
   // The other six (launch sites, crew roster, saved craft, parts available,

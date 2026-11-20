@@ -521,6 +521,7 @@ export type {
 } from "./view-clock";
 export { VISIBLE_GAP_SECONDS, ViewClock } from "./view-clock";
 export type {
+  BinaryFrameInfo,
   StreamFrameInfo,
   WebSocketCtor,
   WebSocketLike,

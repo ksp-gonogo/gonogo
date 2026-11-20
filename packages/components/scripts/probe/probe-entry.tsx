@@ -34,7 +34,7 @@ import {
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { type Meta, splitRawFieldSubtopic } from "@ksp-gonogo/sitrep-sdk";
-import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
+import { MockDataSource, makeMeta } from "@ksp-gonogo/sitrep-sdk/testing";
 import { WidgetAtTileSize } from "@ksp-gonogo/ui";
 import {
   type BadgeEntry,
@@ -99,6 +99,37 @@ export interface StreamEmit {
    * e.g. `quality: Quality.Loaded` (1) for a sample from a craft under physics.
    */
   meta?: Partial<Meta>;
+  /**
+   * Base64 byte segments, for a Topic the mod sends on the binary lane, such as
+   * a body's surface map. When present the emit is a `stream-binary` frame
+   * carrying these, and `value` is ignored.
+   */
+  segments?: string[];
+}
+
+/** Decodes a base64 segment from a fixture. */
+function bytesFromBase64(base64: string): Uint8Array {
+  const text = atob(base64);
+  const bytes = new Uint8Array(text.length);
+  for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i);
+  return bytes;
+}
+
+/** Sends one fixture emit: a binary-lane frame when it carries segments, otherwise a reading. */
+function emitInto(
+  fixture: ReturnType<typeof setupStreamFixture>,
+  e: StreamEmit,
+): void {
+  if (e.segments) {
+    fixture.transport.emitRaw({
+      type: "stream-binary",
+      topic: e.channel,
+      segments: e.segments.map(bytesFromBase64),
+      meta: makeMeta(e.meta),
+    });
+    return;
+  }
+  fixture.emit(e.channel, e.value, e.meta);
 }
 
 /**
@@ -723,7 +754,7 @@ async function mountInto(
       if (!streamFixture.transport.isSubscribed(e.channel)) {
         unsubscribedEmits.push(e);
       }
-      streamFixture.emit(e.channel, e.value, e.meta);
+      emitInto(streamFixture, e);
       await rafTick();
     }
   }
@@ -776,7 +807,7 @@ async function mountInto(
   if (streamFixture && streamBlock?.replayAfterClicks) {
     for (const e of unsubscribedEmits) {
       if (!streamFixture.transport.isSubscribed(e.channel)) continue;
-      streamFixture.emit(e.channel, e.value, e.meta);
+      emitInto(streamFixture, e);
       await rafTick();
     }
     await settle(200);
