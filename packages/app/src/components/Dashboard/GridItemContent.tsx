@@ -1,4 +1,4 @@
-import { getComponent } from "@ksp-gonogo/core";
+import { type ComponentDefinition, getComponent } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
 import { GripIcon, WidgetAtTileSize } from "@ksp-gonogo/ui";
 import {
@@ -14,6 +14,12 @@ import {
   haveUplinksSettled,
   subscribeUplinkOutcomes,
 } from "../../uplinks/loaderState";
+import {
+  ExpandButton,
+  type Expansion,
+  ExpansionHost,
+  useExpansion,
+} from "./Expansion";
 import type { DashboardItem } from "./index";
 import { ComponentWrapper, PushButton, RemoveButton } from "./shared";
 import { WidgetProviders, WidgetShell } from "./TileWidget";
@@ -54,8 +60,6 @@ export const GridItemContent = memo(function GridItemContent({
     haveUplinksSettled,
   );
   const def = getComponent(item.componentId);
-  const sizeDeltaFor = useSizeDeltaFor();
-
   const onSaveConfig = useCallback(
     (next: Record<string, unknown>) => updateItemConfig(item.i, next),
     [item.i, updateItemConfig],
@@ -86,11 +90,88 @@ export const GridItemContent = memo(function GridItemContent({
       </>
     );
   }
+  const tileProps: TileProps = {
+    def,
+    item,
+    w,
+    h,
+    onSaveConfig,
+    onSaveMappings,
+    onRemove,
+    updateItemConfig,
+  };
+  return def.expandable === true ? (
+    <ExpandableTile {...tileProps} />
+  ) : (
+    <TileContent {...tileProps} />
+  );
+});
+
+interface TileProps {
+  def: ComponentDefinition;
+  item: DashboardItem;
+  w: number | undefined;
+  h: number | undefined;
+  onSaveConfig: (next: Record<string, unknown>) => void;
+  onSaveMappings: (next: InputMappings) => void;
+  onRemove: () => void;
+  updateItemConfig: (id: string, config: Record<string, unknown>) => void;
+}
+
+/**
+ * A tile of a widget registered with `expandable`: the same tile with an Expand
+ * button, its widget drawn through a host node that moves into the dialog. Kept
+ * apart from {@link TileContent} so the dialog hook is only called for a widget
+ * that can be expanded.
+ */
+function ExpandableTile(props: Readonly<TileProps>) {
+  const expansion = useExpansion({ name: props.def.name });
+  return <TileContent {...props} expansion={expansion} />;
+}
+
+function TileContent({
+  def,
+  item,
+  w: tileW,
+  h: tileH,
+  onSaveConfig,
+  onSaveMappings,
+  onRemove,
+  updateItemConfig,
+  expansion,
+}: Readonly<TileProps & { expansion?: Expansion }>) {
+  const sizeDeltaFor = useSizeDeltaFor();
+  const w = expansion?.size?.w ?? tileW;
+  const h = expansion?.size?.h ?? tileH;
   // The room the extensions rendering here ask for moves where the widget stops showing its tiny form.
   const sizedDef = withSizeDelta(def, sizeDeltaFor(def));
   const declaredConfig = item.config ?? def.defaultConfig ?? {};
   const hasConfig = Boolean(def.configComponent);
   const hasActions = Boolean(def.actions?.length);
+
+  const widget = (
+    <WidgetShell
+      def={def}
+      item={item}
+      config={declaredConfig}
+      updateItemConfig={updateItemConfig}
+      title={def.name}
+      compact={
+        sizedDef.tiny !== undefined && showsTiny(sizedDef, w, h)
+          ? { title: sizedDef.tiny.title }
+          : undefined
+      }
+    >
+      <WidgetAtTileSize
+        def={sizedDef}
+        id={item.i}
+        config={item.config}
+        w={w}
+        h={h}
+        onConfigChange={onSaveConfig}
+      />
+    </WidgetShell>
+  );
 
   return (
     <WidgetProviders def={def} config={declaredConfig}>
@@ -99,6 +180,9 @@ export const GridItemContent = memo(function GridItemContent({
           <GripIcon size={12} />
           {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
           <ActionButtons className="widget-action-buttons">
+            {expansion && (
+              <ExpandButton expansion={expansion} name={def.name} />
+            )}
             {(hasConfig || hasActions) && (
               <GearWrapper>
                 <GearButton
@@ -112,39 +196,35 @@ export const GridItemContent = memo(function GridItemContent({
             <PushButton
               item={item}
               pushable={def.pushable === true}
-              w={w ?? 3}
-              h={h ?? 3}
+              w={tileW ?? 3}
+              h={tileH ?? 3}
             />
             <RemoveButton onRemove={onRemove} name={def.name} />
           </ActionButtons>
         </CellHeader>
       </Tooltip>
       <ComponentWrapper>
-        <WidgetShell
-          def={def}
-          item={item}
-          config={declaredConfig}
-          updateItemConfig={updateItemConfig}
-          title={def.name}
-          compact={
-            sizedDef.tiny !== undefined && showsTiny(sizedDef, w, h)
-              ? { title: sizedDef.tiny.title }
-              : undefined
-          }
-        >
-          <WidgetAtTileSize
-            def={sizedDef}
-            id={item.i}
-            config={item.config}
-            w={w}
-            h={h}
-            onConfigChange={onSaveConfig}
-          />
-        </WidgetShell>
+        {expansion ? (
+          <ExpansionHost
+            expansion={expansion}
+            pushButton={
+              <PushButton
+                item={item}
+                pushable={def.pushable === true}
+                w={w ?? 3}
+                h={h ?? 3}
+              />
+            }
+          >
+            {widget}
+          </ExpansionHost>
+        ) : (
+          widget
+        )}
       </ComponentWrapper>
     </WidgetProviders>
   );
-});
+}
 
 const CellHeader = styled.div`
   /* Off the spacing ladder: this is the drag-handle height, and the 18 -> 16

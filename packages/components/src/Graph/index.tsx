@@ -46,6 +46,7 @@ registerComponent<GraphConfig>({
   component: GraphComponent,
   configComponent: GraphConfigComponent,
   openConfigOnAdd: true,
+  expandable: true,
   channelsFromConfig: graphTopicsOf,
   dataRatesFromConfig: (config) => ({ fast: graphTopicsOf(config) }),
   defaultConfig: { series: [], windowSec: 300 },

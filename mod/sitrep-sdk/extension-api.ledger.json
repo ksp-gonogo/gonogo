@@ -41097,6 +41097,10 @@
     ],
     "additions": [
       {
+        "key": "sitrep-sdk . ComponentDefinition#expandable?",
+        "note": "New: a widget opts in to an Expand button that shows it, as the same instance, in a near-fullscreen dialog"
+      },
+      {
         "key": "sitrep-sdk . ModeDefinition",
         "note": "A mode's name, when it is on and its timeline, passed to registerMode"
       },
@@ -41291,6 +41295,10 @@
       {
         "key": "sitrep-sdk . useScreenName",
         "note": "New: the name the operator gave this screen, for labelling what they do where others can see it"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#expandable?",
+        "note": "New: the registry copy of the same opt-in"
       },
       {
         "key": "sitrep-sdk ./registry ~ModeSectionProps",
@@ -41559,6 +41567,14 @@
       {
         "key": "ui-kit . DeleteIcon",
         "note": "New: a rubbish bin icon, for a control that deletes an item"
+      },
+      {
+        "key": "ui-kit . ModalOpenOptions#expanded?",
+        "note": "New: a dialog that fills the window, for content that needs room"
+      },
+      {
+        "key": "ui-kit . ModalOpenOptions#headerActions?",
+        "note": "New: controls drawn in the dialog header's button row, beside Close"
       },
       {
         "key": "ui-kit . SaveIcon",

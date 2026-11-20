@@ -350,6 +350,10 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    */
   pushable?: boolean;
   /**
+   * Adds an Expand button to the widget's tile on the desktop grid, which opens the widget in a dialog that fills the window. The widget is the same instance in the tile and in the dialog, so its typed text, scroll position and selection carry over, and it is given the dialog's size as its `w` and `h`. Useful for a widget that needs more room than a tile gives it. Not shown on the phone and touch list dashboard.
+   */
+  expandable?: boolean;
+  /**
    * Reasons the widget stays open while the Topics it reads say there is no
    * active vessel. Absent, the dashboard then draws "No active vessel" in its
    * place.

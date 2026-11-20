@@ -23,8 +23,10 @@ interface ModalEntry {
   id: string;
   title?: string;
   titleAdornment?: ReactNode;
+  headerActions?: ReactNode;
   "aria-label"?: string;
   width?: string;
+  expanded?: boolean;
   content: ReactNode;
 }
 
@@ -40,10 +42,14 @@ export interface ModalOpenOptions {
   title?: string;
   /** Drawn beside the `title`, outside the name it gives the dialog. Ignored without a `title`. */
   titleAdornment?: ReactNode;
+  /** Controls drawn in the header's row of buttons, beside Close. They do not take the focus when the dialog opens. */
+  headerActions?: ReactNode;
   /** Names a dialog that has no visible `title`. Ignored when `title` is given. */
   "aria-label"?: string;
-  /** CSS length for the dialog max-width. Defaults to 560px. */
+  /** CSS length for the dialog max-width. Defaults to 560px. Ignored when `expanded`. */
   width?: string;
+  /** Fills the window apart from a small margin, so a content that needs room (a chart, a map, an editor) has it. */
+  expanded?: boolean;
 }
 
 /**
@@ -100,8 +106,10 @@ export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
           id,
           title: options?.title,
           titleAdornment: options?.titleAdornment,
+          headerActions: options?.headerActions,
           "aria-label": options?.["aria-label"],
           width: options?.width,
+          expanded: options?.expanded,
           content,
         },
       ]);
@@ -271,11 +279,15 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
    */
   useEffect(() => {
     if (!confirming) {
-      /* A focusable picture in the heading is there for its tooltip, which opening the dialog should not pop open. */
+      /* Whatever sits beside the title is there for its tooltip, which opening the dialog should not pop open, and a tooltip would take the first Escape. */
       Array.from(
         dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
       )
-        .find((element) => !element.matches('[role="img"]'))
+        .find(
+          (element) =>
+            !element.matches('[role="img"]') &&
+            !element.closest("[data-modal-adornment]"),
+        )
         ?.focus();
     }
   }, [confirming]);
@@ -303,22 +315,32 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
             aria-labelledby={entry.title ? titleId : undefined}
             aria-label={entry.title ? undefined : entry["aria-label"]}
             $width={entry.width}
+            $expanded={entry.expanded}
           >
             <DialogHeader>
               {entry.title && (
                 <DialogTitleRow>
                   <DialogTitle id={titleId}>{entry.title}</DialogTitle>
-                  {entry.titleAdornment}
+                  {entry.titleAdornment && (
+                    <TitleAdornment data-modal-adornment>
+                      {entry.titleAdornment}
+                    </TitleAdornment>
+                  )}
                 </DialogTitleRow>
               )}
-              {/* Takes focus when the dialog opens, so a tip of its own would take the first Escape; the empty data-tooltip tells the button to draw none. */}
-              <IconButton
-                onClick={requestClose}
-                aria-label="Close"
-                data-tooltip=""
-              >
-                <CloseIcon size={16} />
-              </IconButton>
+              <HeaderButtons>
+                {entry.headerActions && (
+                  <span data-modal-adornment>{entry.headerActions}</span>
+                )}
+                {/* Takes focus when the dialog opens, so a tip of its own would take the first Escape; the empty data-tooltip tells the button to draw none. */}
+                <IconButton
+                  onClick={requestClose}
+                  aria-label="Close"
+                  data-tooltip=""
+                >
+                  <CloseIcon size={16} />
+                </IconButton>
+              </HeaderButtons>
             </DialogHeader>
             <DialogBody>
               {/* Content opened here sits outside every widget tile, so it needs its own command rail */}
@@ -373,7 +395,7 @@ const Backdrop = styled.div`
   z-index: var(--z-modal);
 `;
 
-const Dialog = styled.div<{ $width?: string }>`
+const Dialog = styled.div<{ $width?: string; $expanded?: boolean }>`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-floating);
@@ -386,6 +408,16 @@ const Dialog = styled.div<{ $width?: string }>`
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  ${({ $expanded }) =>
+    $expanded
+      ? `
+    width: calc(100vw - 48px);
+    max-width: none;
+    height: calc(100vh - 48px);
+    height: calc(100dvh - 48px);
+    max-height: none;
+  `
+      : ""}
 `;
 
 const DialogHeader = styled.div`
@@ -397,11 +429,23 @@ const DialogHeader = styled.div`
   flex-shrink: 0;
 `;
 
+const HeaderButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--gap-related);
+  flex-shrink: 0;
+`;
+
 const DialogTitleRow = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
   min-width: 0;
+`;
+
+const TitleAdornment = styled.span`
+  display: inline-flex;
+  align-items: center;
 `;
 
 const DialogTitle = styled.h2`
