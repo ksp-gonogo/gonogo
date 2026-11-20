@@ -1706,13 +1706,15 @@ export class TelemetryClient {
    */
   private restoreUnchanged(message: StreamData<unknown>): void {
     const { unchanged } = message;
-    if (unchanged !== undefined && unchanged.length > 0) {
+    /* A frame relayed over PeerJS carries `unchanged: null` when none was named, because the wire packs an absent field as null. */
+    if (unchanged != null && unchanged.length > 0) {
       fillUnchangedFields(
         message.payload,
         unchanged,
         this.lastDeliveredWithHeldFields.get(message.topic),
       );
-      message.unchanged = undefined;
+      /* Deleted, not set to undefined: the frame is relayed on, and the wire would turn an undefined field into null. */
+      delete message.unchanged;
     }
     if (fieldsSentOnChange(message.topic).length > 0) {
       this.lastDeliveredWithHeldFields.set(message.topic, message.payload);
