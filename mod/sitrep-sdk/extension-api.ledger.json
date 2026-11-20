@@ -41040,6 +41040,10 @@
         "note": "A mode's name, when it is on and its timeline, passed to registerMode"
       },
       {
+        "key": "sitrep-sdk . ModeDefinition#tone?",
+        "note": "The colour a mode is drawn in, as a tone: its pane's line, the Timeline and the controls that start it"
+      },
+      {
         "key": "sitrep-sdk . ModeDefinition#useActive",
         "note": "A mode's name, when it is on and its timeline, passed to registerMode"
       },
@@ -41088,16 +41092,36 @@
         "note": "The modes the dashboard can be in, declared by declaration merging"
       },
       {
-        "key": "sitrep-sdk . ModeRegistry#default",
-        "note": "The default mode, on whenever no other mode is"
-      },
-      {
         "key": "sitrep-sdk . ModeRegistry#design",
         "note": "The modes the dashboard can be in, declared by declaration merging"
       },
       {
+        "key": "sitrep-sdk . ModeRegistry#live",
+        "note": "Renamed from default: the mode that shows the live game"
+      },
+      {
         "key": "sitrep-sdk . ModeRegistry#replay",
         "note": "The replay mode, a recorded flight played back"
+      },
+      {
+        "key": "sitrep-sdk . ModeSample",
+        "note": "One sample a mode's source supplies: a Topic's whole payload and the moment it is true at"
+      },
+      {
+        "key": "sitrep-sdk . ModeSample#payload",
+        "note": "One sample a mode's source supplies: a Topic's whole payload and the moment it is true at"
+      },
+      {
+        "key": "sitrep-sdk . ModeSample#quality?",
+        "note": "Whether the craft a sample describes is on rails or under physics, so a reckoner knows it may carry the sample forward"
+      },
+      {
+        "key": "sitrep-sdk . ModeSample#topic",
+        "note": "One sample a mode's source supplies: a Topic's whole payload and the moment it is true at"
+      },
+      {
+        "key": "sitrep-sdk . ModeSample#validAt",
+        "note": "One sample a mode's source supplies: a Topic's whole payload and the moment it is true at"
       },
       {
         "key": "sitrep-sdk . ModeSectionProps",
@@ -41106,6 +41130,66 @@
       {
         "key": "sitrep-sdk . ModeSectionProps#reportStatus",
         "note": "The props a mode's section is given, to report its state"
+      },
+      {
+        "key": "sitrep-sdk . ModeSource",
+        "note": "The code that answers a mode's Topics, run on the hosting screen while the mode is on"
+      },
+      {
+        "key": "sitrep-sdk . ModeSource#start",
+        "note": "The code that answers a mode's Topics, run on the hosting screen while the mode is on"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceContext",
+        "note": "What a mode's source is given: its inputs, the live Topics it watches and where it publishes"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceContext#inputs",
+        "note": "What a mode's source is given: its inputs, the live Topics it watches and where it publishes"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceContext#publish",
+        "note": "What a mode's source is given: its inputs, the live Topics it watches and where it publishes"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceContext#watch",
+        "note": "What a mode's source is given: its inputs, the live Topics it watches and where it publishes"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceOutput",
+        "note": "Everything a mode's source supplies: its samples and the timeline they lie on"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceOutput#endUt",
+        "note": "Everything a mode's source supplies: its samples and the timeline they lie on"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceOutput#frames?",
+        "note": "Frames recorded off the stream, for a mode that plays a recording back as it was received"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceOutput#launchUt?",
+        "note": "Everything a mode's source supplies: its samples and the timeline they lie on"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceOutput#marks?",
+        "note": "Everything a mode's source supplies: its samples and the timeline they lie on"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceOutput#noTimeline?",
+        "note": "Everything a mode's source supplies: its samples and the timeline they lie on"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceOutput#rates?",
+        "note": "The speeds a mode's Timeline can play at"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceOutput#samples",
+        "note": "Everything a mode's source supplies: its samples and the timeline they lie on"
+      },
+      {
+        "key": "sitrep-sdk . ModeSourceOutput#startUt",
+        "note": "Everything a mode's source supplies: its samples and the timeline they lie on"
       },
       {
         "key": "sitrep-sdk . ModeTimeline",
@@ -41184,6 +41268,18 @@
         "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
       },
       {
+        "key": "sitrep-sdk . ReadingFrom",
+        "note": "The mode a reading was supplied by, and whether its value is modelled"
+      },
+      {
+        "key": "sitrep-sdk . ReadingFrom#mode",
+        "note": "The mode a reading was supplied by, and whether its value is modelled"
+      },
+      {
+        "key": "sitrep-sdk . ReadingFrom#modelled",
+        "note": "The mode a reading was supplied by, and whether its value is modelled"
+      },
+      {
         "key": "sitrep-sdk . SectionStatus",
         "note": "A mode section's state, shown beside its heading"
       },
@@ -41200,12 +41296,12 @@
         "note": "A mode section's state, shown beside its heading"
       },
       {
-        "key": "sitrep-sdk . SlotRegistry#\"mode-sections.default\"",
-        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
-      },
-      {
         "key": "sitrep-sdk . SlotRegistry#\"mode-sections.design\"",
         "note": "New augment slot: an Uplink adds a section to design mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"mode-sections.live\"",
+        "note": "Renamed from mode-sections.default: the mode that shows the live game is called live"
       },
       {
         "key": "sitrep-sdk . SlotRegistry#\"mode-sections.replay\"",
@@ -41772,12 +41868,32 @@
         "note": "Optional space value on UiKitTheme"
       },
       {
+        "key": "sitrep-sdk . getModeSource",
+        "note": "Reads the source registered for a mode"
+      },
+      {
         "key": "sitrep-sdk . getModes",
         "note": "Every registered mode, for a test"
       },
       {
+        "key": "sitrep-sdk . isLive",
+        "note": "Whether a reading is of the live game, not supplied by a mode"
+      },
+      {
+        "key": "sitrep-sdk . isWorldTopic",
+        "note": "Whether a Topic is about the world or the home command and not a craft, from the delay role the contract gives it"
+      },
+      {
+        "key": "sitrep-sdk . readingSource",
+        "note": "New: the mode that supplied a reading, or undefined for a reading of the live game"
+      },
+      {
         "key": "sitrep-sdk . registerMode",
         "note": "Declares a mode"
+      },
+      {
+        "key": "sitrep-sdk . registerModeSource",
+        "note": "Registers the source that answers a mode's Topics"
       },
       {
         "key": "sitrep-sdk . useModes",
@@ -41864,12 +41980,12 @@
         "note": "A mode section's state, shown beside its heading"
       },
       {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.default\"",
-        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
-      },
-      {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.design\"",
         "note": "New augment slot: an Uplink adds a section to design mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.live\"",
+        "note": "Renamed from mode-sections.default: the mode that shows the live game is called live"
       },
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.replay\"",
@@ -42444,12 +42560,28 @@
         "note": "New: the app's provider for the screen's name"
       },
       {
+        "key": "sitrep-sdk ./spine StreamEvent",
+        "note": "A moment worth marking in the craft's history, with a few words on what happened"
+      },
+      {
+        "key": "sitrep-sdk ./spine StreamEvent#label",
+        "note": "A moment worth marking in the craft's history, with a few words on what happened"
+      },
+      {
+        "key": "sitrep-sdk ./spine StreamEvent#ut",
+        "note": "A moment worth marking in the craft's history, with a few words on what happened"
+      },
+      {
         "key": "sitrep-sdk ./spine TelemetryOverlay",
         "note": "An overlay names the mode whose values it carries"
       },
       {
         "key": "sitrep-sdk ./spine TelemetryOverlay#client",
         "note": "An overlay names the mode whose values it carries"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryOverlay#isWorld?",
+        "note": "A whole-craft overlay leaves world Topics to the live game, judged by this where the running mod's roles are known"
       },
       {
         "key": "sitrep-sdk ./spine TelemetryOverlay#label?",
@@ -42468,12 +42600,64 @@
         "note": "An overlay names the mode whose values it carries"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryOverlay#wholeCraft?",
+        "note": "Set when an overlay answers for the whole craft, so every Topic about the game is read from it"
+      },
+      {
         "key": "sitrep-sdk ./spine TelemetryOverlayProvider",
         "note": "An overlay names the mode whose values it carries"
       },
       {
+        "key": "sitrep-sdk ./spine TimelineStoreOptions#mode?",
+        "note": "Marks a store as holding a mode's values, so its readings carry from and follow the mode's reckoning switch"
+      },
+      {
+        "key": "sitrep-sdk ./spine heldFrames",
+        "note": "New: the newest frame a client holds of every subscribed Topic, for starting a recording from the state the stream is in"
+      },
+      {
+        "key": "sitrep-sdk ./spine isDashboardTopic",
+        "note": "Whether a Topic is the dashboard's own (mode, system, host, settings), which no mode answers"
+      },
+      {
+        "key": "sitrep-sdk ./spine isWorldTopicFor",
+        "note": "New: whether a Topic is about the world and not a craft, by the roles the mod has stated to a store"
+      },
+      {
+        "key": "sitrep-sdk ./spine modeCursorUt",
+        "note": "The moment this screen shows on the mode's timeline"
+      },
+      {
         "key": "sitrep-sdk ./spine overlayCovers",
         "note": "Whether an overlay answers a Topic, for the app's read routing"
+      },
+      {
+        "key": "sitrep-sdk ./spine resetModeViewForTests",
+        "note": "Test-only: forgets this screen's place on the mode's timeline"
+      },
+      {
+        "key": "sitrep-sdk ./spine sendModeCommand",
+        "note": "Sends a mode command, which is never signal-delayed"
+      },
+      {
+        "key": "sitrep-sdk ./spine useEvents",
+        "note": "The events in the history a screen holds: each stage the craft fired and the mode's own marks, for a widget that asks"
+      },
+      {
+        "key": "sitrep-sdk ./spine useModeControls",
+        "note": "Enters and leaves modes and sets a mode's inputs"
+      },
+      {
+        "key": "sitrep-sdk ./spine useModeState",
+        "note": "Reads the mode the dashboard is in from mode.state"
+      },
+      {
+        "key": "sitrep-sdk ./spine useModeSync",
+        "note": "Whether this screen follows the shared timeline, and the setter"
+      },
+      {
+        "key": "sitrep-sdk ./spine useModeTimeline",
+        "note": "The dashboard mode's timeline with this screen's own position and controls"
       },
       {
         "key": "sitrep-sdk ./spine useScreenName",
@@ -42492,28 +42676,88 @@
         "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
       },
       {
-        "key": "sitrep-sdk ./spine ~MissionMeta#flightId?",
-        "note": "New: the spine copy of the same field"
-      },
-      {
         "key": "sitrep-sdk ./spine ~ModeId",
         "note": "The id of a declared mode"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModePlayback",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModePlayback#exit",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModePlayback#pause",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModePlayback#play",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModePlayback#playing",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModePlayback#rate",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModePlayback#rates",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModePlayback#setRate",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
       },
       {
         "key": "sitrep-sdk ./spine ~ModeRegistry",
         "note": "The modes the dashboard can be in, declared by declaration merging"
       },
       {
-        "key": "sitrep-sdk ./spine ~ModeRegistry#default",
-        "note": "The default mode, on whenever no other mode is"
-      },
-      {
         "key": "sitrep-sdk ./spine ~ModeRegistry#design",
         "note": "The modes the dashboard can be in, declared by declaration merging"
       },
       {
+        "key": "sitrep-sdk ./spine ~ModeRegistry#live",
+        "note": "Renamed from default: the mode that shows the live game"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ModeRegistry#replay",
         "note": "The replay mode, a recorded flight played back"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeTimeline",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeTimeline#at",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeTimeline#end",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeTimeline#launchUt?",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeTimeline#marks?",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeTimeline#playback?",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeTimeline#seek",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeTimeline#start",
+        "note": "Reached through the spine now that the mode timeline hook returns it"
       },
       {
         "key": "sitrep-sdk ./spine ~PlanStepInput",
@@ -42558,6 +42802,18 @@
       {
         "key": "sitrep-sdk ./spine ~PlanStepKind#needsDv?",
         "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ReadingFrom",
+        "note": "The mode a reading was supplied by, and whether its value is modelled"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ReadingFrom#mode",
+        "note": "The mode a reading was supplied by, and whether its value is modelled"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ReadingFrom#modelled",
+        "note": "The mode a reading was supplied by, and whether its value is modelled"
       },
       {
         "key": "sitrep-sdk ./testing harnessThemeFull",
@@ -42636,16 +42892,20 @@
         "note": "A mode section's state, shown beside its heading"
       },
       {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.default\"",
-        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
-      },
-      {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.design\"",
         "note": "New augment slot: an Uplink adds a section to design mode as an augment"
       },
       {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.live\"",
+        "note": "Renamed from mode-sections.default: the mode that shows the live game is called live"
+      },
+      {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.replay\"",
         "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TimelineStoreOptions#mode?",
+        "note": "Marks a store as holding a mode's values, so its readings carry from and follow the mode's reckoning switch"
       },
       {
         "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#widgets?",
@@ -42676,16 +42936,20 @@
         "note": "New: controls drawn in the dialog header's button row, beside Close"
       },
       {
+        "key": "ui-kit . RANGE_MARK",
+        "note": "The kit's standard for drawing a range of values against a value at one moment (trial)"
+      },
+      {
         "key": "ui-kit . SaveIcon",
         "note": "New: a floppy disk icon, for a control that saves what the operator wrote"
       },
       {
-        "key": "ui-kit . SlotRegistry#\"mode-sections.default\"",
-        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
-      },
-      {
         "key": "ui-kit . SlotRegistry#\"mode-sections.design\"",
         "note": "New augment slot: an Uplink adds a section to design mode as an augment"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"mode-sections.live\"",
+        "note": "Renamed from mode-sections.default: the mode that shows the live game is called live"
       },
       {
         "key": "ui-kit . SlotRegistry#\"mode-sections.replay\"",
@@ -43250,12 +43514,196 @@
       {
         "key": "ui-kit . UiKitTheme#space?",
         "note": "Optional space value on UiKitTheme"
+      },
+      {
+        "key": "ui-kit . rangePart",
+        "note": "Which part of a range a value belongs to for the moment on screen (trial)"
       }
     ],
     "recorded": [
       {
         "key": "sitrep-sdk . COMMAND_IDS",
         "note": "Adds the command id vessel.setPartField, which sets one part-window field on a part in flight; the list keeps every earlier id"
+      },
+      {
+        "key": "sitrep-sdk . TOPIC_IDS",
+        "note": "Adds the Topic ids mode.state and system.modes, the mode the dashboard is in and the modes declared"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionController",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionController#cursorUt",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionController#getSnapshot",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionController#pause",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionController#play",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionController#seekTo",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionController#setRate",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionController#start",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionController#stop",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionController#subscribe",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionProvider",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionSnapshot",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionSnapshot#active",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionSnapshot#client",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionSnapshot#meta",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionSnapshot#playing",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionSnapshot#rate",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionSnapshot#store",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine getReplaySessionController",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine readingFrom",
+        "note": "Takes an optional from, the mode that supplied the reading"
+      },
+      {
+        "key": "sitrep-sdk ./spine resetReplaySessionControllerForTests",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~FlightChapterRecord",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~FlightChapterRecord#endMs",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~FlightChapterRecord#id",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~FlightChapterRecord#label",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~FlightChapterRecord#startMs",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~Listener",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#chapters?",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#endReason?",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#evaKerbals?",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#firstFrameUt",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#firstValidUt?",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#frameCount",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#id",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#joinedVesselId?",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#joinedVesselName?",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#lastFrameUt",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#lastValidUt?",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#launchName?",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#launchedAt",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#partCount?",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#starred?",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#vesselName",
+        "note": "Old Replay's screen-local controller left the sdk: Replay is a mode the mod holds, and the player now lives in the private test helpers"
       }
     ]
   }

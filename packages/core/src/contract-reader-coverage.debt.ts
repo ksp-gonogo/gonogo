@@ -52,6 +52,8 @@
  * other side by `gonogo-uplinks/tooling/verify-contract-reader-debt.mjs`).
  */
 export const CONTRACT_READER_DEBT: Record<string, string> = {
+  "command:mode.declare":
+    "Operator approved: an Uplink that brings its own mode declares it and lists the modes; none is bundled yet",
   "field:commcast.transmissions.topic":
     "always commcast.radio, which Commcast already subscribes to by its own constant",
   "field:comms.commandCentre.bodyIndex": "no reader found",
@@ -84,6 +86,8 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:system.frame.primaryBodies": "no reader found",
   "field:system.frame.secondaryBodies": "no reader found",
   "field:system.frame.targetId": "no reader found",
+  "field:system.modes.modes":
+    "Operator approved: an Uplink that brings its own mode declares it and lists the modes; none is bundled yet",
   "field:time.calendar.kerbinTime": "no reader found",
   "field:vessel.control.translationX": "no reader found",
   "field:vessel.control.translationY": "no reader found",
@@ -106,6 +110,10 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
  * reader lands, and nothing may be added to it once the base carries one.
  */
 export const CONTRACT_READER_ADDED_WITH_TICKET: Record<string, string> = {
+  "command:mode.declare":
+    "Operator approved: an Uplink that brings its own mode declares it and lists the modes; none is bundled yet",
+  "field:system.modes.modes":
+    "Operator approved: an Uplink that brings its own mode declares it and lists the modes; none is bundled yet",
   "field:comms.groundStations.stations":
     "Operator approved: the Ground Track station markers will read it",
 };
