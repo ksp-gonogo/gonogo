@@ -678,6 +678,11 @@ describe("the Timeline's playback rate", () => {
     expect(
       fixture.transport.sentCommands.map((c) => [c.command, c.args]),
     ).toEqual([[command, { mode: MODE, rate: 10 }]]);
+    // Held before the test ends: a playing timeline draws every frame for as long as it is mounted.
+    if (playing) {
+      act(() => say(fixture, flight(now + 10, false)));
+      await screen.findByRole("button", { name: /^Play/ });
+    }
     await act(async () => {});
   });
 });

@@ -365,6 +365,10 @@ describe("a screen's header in a replay", () => {
       "Live One",
     );
     expect(screen.getByLabelText("outside").textContent).toContain("Live One");
+    // The date inside is the replay's moment, taken up a frame after the craft's name.
+    const date = (where: string) =>
+      screen.getByLabelText(where).textContent?.split("Command centre")[0];
+    await waitFor(() => expect(date("inside")).not.toBe(date("outside")));
     await act(async () => {});
   });
 });
