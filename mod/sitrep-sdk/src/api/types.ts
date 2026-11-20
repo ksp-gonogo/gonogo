@@ -56,6 +56,18 @@ import type { Tone } from "./tone";
 export type DataRequirement = string;
 
 /**
+ * A game state a widget once declared it needs. `"flight"` is a vessel in
+ * flight; `"career"` is a career save or a science-mode save. Kept so a widget
+ * built against an earlier release still type-checks; the dashboard no longer
+ * reads it and gates a widget on the Topics it reads. Listed in the `requires`
+ * of a {@link ComponentDefinition}.
+ *
+ * The app ignores it. It is accepted so that an Uplink built for 1.0 still compiles.
+ * @category Registering
+ */
+export type ComponentRequirement = "flight" | "career";
+
+/**
  * A reason a widget stays on screen although the Topics it reads say there is no active vessel.
  * `"crash-ending"` keeps it open while the crash that ended the last flight is
  * on record. Useful for letting the operator still read how a flight ended
@@ -536,6 +548,13 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * Adds an Expand button to the widget's tile on the desktop grid, which opens the widget in a dialog that fills the window. The widget is the same instance in the tile and in the dialog, so its typed text, scroll position and selection carry over, and it is given the dialog's size as its `w` and `h`. Useful for a widget that needs more room than a tile gives it. Not shown on the phone and touch list dashboard.
    */
   expandable?: boolean;
+  /**
+   * Game states a widget declared it needs. The dashboard ignores it and gates
+   * the widget on the Topics it reads.
+   *
+   * The app ignores it. It is accepted so that an Uplink built for 1.0 still compiles.
+   */
+  requires?: readonly ComponentRequirement[];
   /**
    * Reasons the widget stays open while the Topics it reads say there is no
    * active vessel. Absent, the dashboard then draws "No active vessel" in its
@@ -1541,6 +1560,8 @@ export interface BodyDefinition {
   radius: number;
   /** Standard gravitational parameter (GM) in m³/s². */
   gm?: number;
+  /** Ignored: the mod supplies each body's surface map. Accepted so that an Uplink built for 1.0 still compiles. */
+  texture?: string;
   /** Display colour (CSS colour string) a body is drawn in where the mod supplies no surface map for it. */
   color?: string;
   /** Longitude correction in degrees added to a reported longitude before mapping. */

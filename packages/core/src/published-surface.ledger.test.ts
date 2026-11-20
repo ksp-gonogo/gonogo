@@ -167,7 +167,11 @@ describe("EveryEntryDeclaresExactlyWhatItChanged", () => {
     freezeEntry(
       {
         ...seeded(),
-        pending: { breaks: [{ key: "p . f", note: "gone" }], additions: [] },
+        pending: {
+          breaks: [{ key: "p . f", note: "gone" }],
+          additions: [],
+          recorded: [],
+        },
       },
       afterBreak,
       "drop f",
@@ -206,6 +210,7 @@ describe("EveryEntryDeclaresExactlyWhatItChanged", () => {
         pending: {
           breaks: [{ key: "p . f", note: "gone" }],
           additions: [{ key: "p . g", note: "new" }],
+          recorded: [],
         },
       },
       current,
@@ -275,6 +280,7 @@ describe("the freeze", () => {
       pending: {
         breaks: noted(out.pending.breaks),
         additions: noted(out.pending.additions),
+        recorded: noted(out.pending.recorded),
       },
     };
   };
@@ -298,7 +304,11 @@ describe("the freeze", () => {
     expect(version).toBe("6.1.0");
     expect(ledger.entries[1].floor).toBeUndefined();
     expect(frozenAt(ledger, 1)).toContain("p . g :: (): void");
-    expect(ledger.pending).toEqual({ breaks: [], additions: [] });
+    expect(ledger.pending).toEqual({
+      breaks: [],
+      additions: [],
+      recorded: [],
+    });
   });
 
   it("refuses to freeze an unchanged shape", () => {
@@ -365,6 +375,7 @@ describe("a ledger versioned by the release", () => {
       pending: {
         breaks: noted(out.pending.breaks),
         additions: noted(out.pending.additions),
+        recorded: noted(out.pending.recorded),
       },
     };
   };
@@ -409,5 +420,47 @@ describe("a ledger versioned by the release", () => {
     expect(() => nextVersion("0.1.0", true, "release")).toThrow(
       /given by the release/,
     );
+  });
+});
+
+describe("a change recorded on a first-party entry point", () => {
+  const BASE_SPINE = [
+    "sitrep-sdk ./spine useThing :: (): void",
+    "sitrep-sdk . keep :: number",
+  ];
+  const after = ["sitrep-sdk . keep :: number"];
+  const ledger = () =>
+    seedLedger(BASE_SPINE, "6.0.0", TS, "semver", "at-release");
+  const declared = () => {
+    const out = declarePending(ledger(), after);
+    return {
+      ...out,
+      pending: {
+        ...out.pending,
+        recorded: out.pending.recorded.map((c) => ({ ...c, note: "why" })),
+      },
+    };
+  };
+
+  it("is declared as recorded and never as a break", () => {
+    const out = declarePending(ledger(), after);
+    expect(out.pending.breaks).toEqual([]);
+    expect(out.pending.recorded.map((c) => c.key)).toEqual([
+      "sitrep-sdk ./spine useThing",
+    ]);
+  });
+
+  it("fails while pending does not record it", () => {
+    expect(
+      problems(grade(ledger(), after)).some((p) => p.includes("not recorded")),
+    ).toBe(true);
+    expect(problems(grade(declared(), after))).toEqual([]);
+  });
+
+  it("moves no major, and the next frozen shape no longer holds the removed key", () => {
+    const { ledger: frozen, version } = freezeEntry(declared(), after, "n");
+    expect(version).toBe("6.1.0");
+    expect(frozenAt(frozen, 1)).toEqual(after);
+    expect(problems(grade(frozen, after))).toEqual([]);
   });
 });

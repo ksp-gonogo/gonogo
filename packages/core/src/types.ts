@@ -354,6 +354,13 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    */
   expandable?: boolean;
   /**
+   * Game states a widget declared it needs. The dashboard ignores it and gates
+   * the widget on the Topics it reads.
+   *
+   * The app ignores it. It is accepted so that an Uplink built for 1.0 still compiles.
+   */
+  requires?: readonly ComponentRequirement[];
+  /**
    * Reasons the widget stays open while the Topics it reads say there is no
    * active vessel. Absent, the dashboard then draws "No active vessel" in its
    * place.
@@ -423,6 +430,15 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    */
   owner?: UplinkClientHandle;
 }
+
+/**
+ * A game state a widget once declared it needs: `flight` is a vessel in flight,
+ * `career` a career or science-mode save. Ignored by the dashboard, which gates
+ * a widget on the Topics it reads.
+ *
+ * The app ignores it. It is accepted so that an Uplink built for 1.0 still compiles.
+ */
+export type ComponentRequirement = "flight" | "career";
 
 /**
  * A reason a widget stays on screen although the Topics it reads say there is

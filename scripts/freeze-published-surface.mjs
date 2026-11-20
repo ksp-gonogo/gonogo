@@ -73,12 +73,12 @@ export function nextVersion(previous, hasBreaks, versioning) {
  */
 export function planFreeze(ledgerText, carriedVersion, release) {
   const ledger = JSON.parse(ledgerText);
-  const { breaks, additions } = ledger.pending;
-  const emptyNotes = [...breaks, ...additions]
+  const { breaks, additions, recorded = [] } = ledger.pending;
+  const emptyNotes = [...breaks, ...additions, ...recorded]
     .filter((change) => change.note.trim() === "")
     .map((change) => change.key);
   const latest = ledger.entries[ledger.entries.length - 1].version;
-  const pending = breaks.length + additions.length > 0;
+  const pending = breaks.length + additions.length + recorded.length > 0;
   const byRelease = ledger.versioning === "release";
   let next = null;
   if (pending) {

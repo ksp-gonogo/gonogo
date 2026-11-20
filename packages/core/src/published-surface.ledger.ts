@@ -38,12 +38,20 @@ export interface LedgerEntry {
   note: string;
   breaks: DeclaredChange[];
   additions: DeclaredAddition[];
+  /**
+   * Changes on an entry point that is first-party wiring: recorded, never
+   * counted as a break. `lines` is the key's new shape, empty when it was
+   * removed. An entry with no `recorded` list predates the rule and is graded
+   * by the strict diff.
+   */
+  recorded?: DeclaredAddition[];
   floor?: string[];
 }
 
 export interface Pending {
   breaks: DeclaredChange[];
   additions: DeclaredChange[];
+  recorded: DeclaredChange[];
 }
 
 export interface Ledger {
@@ -127,6 +135,9 @@ export function parseLedger(text: string): Ledger {
         note: entry.note,
         breaks: changes(entry.breaks, `entries[${i}].breaks`),
         additions: additions(entry.additions, `entries[${i}].additions`),
+        ...(entry.recorded === undefined
+          ? {}
+          : { recorded: additions(entry.recorded, `entries[${i}].recorded`) }),
         ...(entry.floor === undefined
           ? {}
           : { floor: strings(entry.floor, `entries[${i}].floor`) }),
@@ -135,6 +146,10 @@ export function parseLedger(text: string): Ledger {
     pending: {
       breaks: changes(pending.breaks, "pending.breaks"),
       additions: changes(pending.additions, "pending.additions"),
+      recorded:
+        pending.recorded === undefined
+          ? []
+          : changes(pending.recorded, "pending.recorded"),
     },
   };
 }
@@ -196,6 +211,12 @@ export function frozenAt(ledger: Ledger, upTo: number): string[] | null {
   for (let i = start + 1; i <= upTo; i += 1) {
     for (const added of ledger.entries[i].additions) {
       for (const line of added.lines) lines.add(line);
+    }
+    for (const changed of ledger.entries[i].recorded ?? []) {
+      for (const line of [...lines]) {
+        if (keyOf(line) === changed.key) lines.delete(line);
+      }
+      for (const line of changed.lines) lines.add(line);
     }
   }
   return [...lines];
@@ -287,7 +308,7 @@ export function gradeLedger({
 
   const frozen = last ? frozenAt(ledger, entries.length - 1) : null;
   if (frozen) {
-    const { breaks, additions: added } = diffShape(frozen, current);
+    const { breaks, additions: added, recorded } = diffShape(frozen, current);
     const declared = ledger.pending;
     const pendingBreaks = declared.breaks.map((c) => c.key);
     const pendingAdds = declared.additions.map((c) => c.key);
@@ -304,7 +325,15 @@ export function gradeLedger({
           `${key}: added with no entry, an addition needs a version that moves`,
         );
       }
-      if (pendingBreaks.length + pendingAdds.length > 0) {
+      for (const key of recorded) {
+        problems.push(
+          `${key}: changed with no entry, a change needs a version that moves`,
+        );
+      }
+      if (
+        pendingBreaks.length + pendingAdds.length + declared.recorded.length >
+        0
+      ) {
         problems.push(
           "pending must be empty while versionMoves is every-change",
         );
@@ -332,7 +361,24 @@ export function gradeLedger({
           `${key}: declared as an addition and the shape does not add it`,
         );
       }
-      for (const change of [...declared.breaks, ...declared.additions]) {
+      const pendingRecorded = declared.recorded.map((c) => c.key);
+      for (const key of recorded) {
+        if (!pendingRecorded.includes(key)) {
+          problems.push(
+            `${key}: changed on a first-party entry point and not recorded in pending`,
+          );
+        }
+      }
+      for (const key of pendingRecorded.filter((k) => !recorded.includes(k))) {
+        problems.push(
+          `${key}: recorded as a change and the shape does not change it`,
+        );
+      }
+      for (const change of [
+        ...declared.breaks,
+        ...declared.additions,
+        ...declared.recorded,
+      ]) {
         if (change.note.trim() === "") {
           problems.push(`${change.key}: declared with no note`);
         }
@@ -367,13 +413,20 @@ export function gradeLedger({
         );
       }
     }
-    if (i > 0 && !hasBreaks && entry.additions.length === 0) {
+    if (
+      i > 0 &&
+      !hasBreaks &&
+      entry.additions.length === 0 &&
+      (entry.recorded ?? []).length === 0
+    ) {
       problems.push(
         `${entry.version}: records neither a break nor an addition`,
       );
     }
     if (entry.floor && before) {
-      const diff = diffShape(before, entry.floor);
+      const diff = diffShape(before, entry.floor, {
+        strict: entry.recorded === undefined,
+      });
       if (
         !sameSet(
           diff.breaks,
@@ -414,7 +467,11 @@ export function gradeLedger({
     if (!entry.floor && hasBreaks) {
       problems.push(`${entry.version}: records breaks and carries no floor`);
     }
-    for (const change of [...entry.breaks, ...entry.additions]) {
+    for (const change of [
+      ...entry.breaks,
+      ...entry.additions,
+      ...(entry.recorded ?? []),
+    ]) {
       if (change.note.trim() === "") {
         problems.push(`${entry.version}: ${change.key} has no note`);
       }
@@ -441,6 +498,7 @@ export function declarePending(
     pending: {
       breaks: keep(ledger.pending.breaks, diff.breaks),
       additions: keep(ledger.pending.additions, diff.additions),
+      recorded: keep(ledger.pending.recorded, diff.recorded),
     },
   };
 }
@@ -482,7 +540,7 @@ export function freezeEntry(
   if (!last || !frozen)
     throw new Error("the ledger has no floor: seed it first");
   const diff = diffShape(frozen, current);
-  if (diff.breaks.length + diff.additions.length === 0) {
+  if (diff.breaks.length + diff.additions.length + diff.recorded.length === 0) {
     throw new Error("nothing to freeze: the shape is the frozen floor");
   }
   const graded = gradeLedger({
@@ -515,6 +573,10 @@ export function freezeEntry(
       ...c,
       lines: lineOf(c.key),
     })),
+    recorded: ledger.pending.recorded.map((c) => ({
+      ...c,
+      lines: lineOf(c.key),
+    })),
     ...(diff.breaks.length > 0 ? { floor: [...current].sort() } : {}),
   };
   const entries = [...ledger.entries, entry];
@@ -530,7 +592,7 @@ export function freezeEntry(
     ledger: {
       ...ledger,
       entries: pruned.reverse(),
-      pending: { breaks: [], additions: [] },
+      pending: { breaks: [], additions: [], recorded: [] },
     },
     version,
   };
@@ -557,7 +619,7 @@ export function seedLedger(
         floor: [...current].sort(),
       },
     ],
-    pending: { breaks: [], additions: [] },
+    pending: { breaks: [], additions: [], recorded: [] },
   };
 }
 

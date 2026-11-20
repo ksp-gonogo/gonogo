@@ -280,13 +280,18 @@ for (const spec of LEDGERS) {
           typescript: ts.version,
         });
       const declared = new Set(
-        [...ledger.pending.breaks, ...ledger.pending.additions].map(
-          (c) => c.key,
-        ),
+        [
+          ...ledger.pending.breaks,
+          ...ledger.pending.additions,
+          ...ledger.pending.recorded,
+        ].map((c) => c.key),
       );
       const victim =
         current.find(
-          (line) => line.includes(" :: ") && !declared.has(keyOf(line)),
+          (line) =>
+            /^\S+ \. /.test(line) &&
+            line.includes(" :: ") &&
+            !declared.has(keyOf(line)),
         ) ?? "";
       const removed = grade(current.filter((line) => line !== victim));
       const retyped = grade(
@@ -295,11 +300,50 @@ for (const spec of LEDGERS) {
       const added = grade([...current, "planted . Fresh :: interface"]);
       const seen = (results: Record<string, string[]>) =>
         Object.values(results).some((list) => list.length > 0);
-      expect(seen(removed), "a removed export went unseen: BLIND").toBe(true);
-      expect(seen(retyped), "a retyped export went unseen: BLIND").toBe(true);
+      const unsettled = (results: Record<string, string[]>) =>
+        results.CurrentShapeIsAdditiveOverTheFrozenFloor;
+      expect(
+        unsettled(removed).length,
+        "a removed root export is not counted as a break: BLIND",
+      ).toBeGreaterThan(0);
+      expect(
+        unsettled(retyped).length,
+        "a retyped root export is not counted as a break: BLIND",
+      ).toBeGreaterThan(0);
       expect(seen(added), "an undeclared addition went unseen: BLIND").toBe(
         true,
       );
+    });
+
+    it("counts a new registry key as an addition and a removed root export as a break", () => {
+      if (!ledger) throw new Error("no ledger");
+      const current = currentOf(spec);
+      const grade = (planted: string[]) =>
+        gradeLedger({
+          ledger,
+          current: planted,
+          version: spec.version(),
+          typescript: ts.version,
+        });
+      const registryLine = current.find((line) =>
+        /^(sitrep-sdk|ui-kit) \. SlotRegistry#/.test(line),
+      );
+      if (!registryLine) return;
+      const owner = keyOf(registryLine).split("#")[0];
+      const planted = grade([
+        ...current,
+        `${owner}#"planted.slot" :: { planted: true }`,
+      ]);
+      expect(
+        planted.CurrentShapeIsAdditiveOverTheFrozenFloor,
+        "a new registry key was counted as a break",
+      ).toEqual([]);
+      expect(
+        planted.PendingDeclaresExactlyTheComputedChange.some((p) =>
+          p.includes("planted.slot"),
+        ),
+        "a new registry key went unseen: BLIND",
+      ).toBe(true);
     });
   });
 }

@@ -178,3 +178,78 @@ describe("a type reachable from the surface but not exported", () => {
     expect(keys.some((key) => key.includes("~Local"))).toBe(false);
   });
 });
+
+describe("what the diff counts as a break", () => {
+  const registry = (members: string) =>
+    shape(`export interface SlotRegistry {\n${members}\n}`);
+
+  it("reads a new key on a registry interface as an addition", () => {
+    const before = registry('  "a.slot": string;');
+    const after = registry('  "a.slot": string;\n  "b.slot": number;');
+    const diff = diffShape(before, after);
+    expect(diff.breaks).toEqual([]);
+    expect(diff.additions).toEqual(['plant . SlotRegistry#"b.slot"']);
+  });
+
+  it("still reads a removed or retyped key of a registry interface as a break", () => {
+    const before = registry('  "a.slot": string;\n  "b.slot": number;');
+    expect(diffShape(before, registry('  "a.slot": string;')).breaks).toEqual([
+      'plant . SlotRegistry#"b.slot"',
+    ]);
+    expect(
+      diffShape(before, registry('  "a.slot": boolean;\n  "b.slot": number;'))
+        .breaks,
+    ).toEqual(['plant . SlotRegistry#"a.slot"']);
+  });
+
+  it("still reads a new required member of any other interface as a break", () => {
+    const before = shape("export interface Props {\n  a: string;\n}");
+    const after = shape(
+      "export interface Props {\n  a: string;\n  b: number;\n}",
+    );
+    expect(diffShape(before, after).breaks).toEqual(["plant . Props#b"]);
+  });
+
+  const line = (key: string, text: string) => `${key} :: ${text}`;
+
+  it("records a change on /spine and /registry without counting it as a break", () => {
+    for (const subpath of ["./spine", "./registry"]) {
+      const key = `sitrep-sdk ${subpath} useThing`;
+      const removed = diffShape([line(key, "() => void")], []);
+      expect(removed.breaks).toEqual([]);
+      expect(removed.recorded).toEqual([key]);
+      const retyped = diffShape(
+        [line(key, "() => void")],
+        [line(key, "() => number")],
+      );
+      expect(retyped.breaks).toEqual([]);
+      expect(retyped.recorded).toEqual([key]);
+    }
+  });
+
+  it("counts the same change on the root and /testing entries as a break", () => {
+    for (const subpath of [".", "./testing"]) {
+      const key = `sitrep-sdk ${subpath} useThing`;
+      const removed = diffShape([line(key, "() => void")], []);
+      expect(removed.breaks).toEqual([key]);
+      expect(removed.recorded).toEqual([]);
+    }
+  });
+
+  it("counts everything the old way when asked to be strict", () => {
+    const key = "sitrep-sdk ./spine useThing";
+    expect(
+      diffShape([line(key, "() => void")], [], { strict: true }).breaks,
+    ).toEqual([key]);
+  });
+
+  it("records a list of ids that gained ids, and counts one that lost an id as a break", () => {
+    const key = "sitrep-sdk . IDS";
+    const ids = (...names: string[]) =>
+      line(key, `readonly [${names.map((n) => `"${n}"`).join(", ")}]`);
+    const grown = diffShape([ids("a", "b")], [ids("a", "b", "c")]);
+    expect(grown.breaks).toEqual([]);
+    expect(grown.recorded).toEqual([key]);
+    expect(diffShape([ids("a", "b")], [ids("a", "c")]).breaks).toEqual([key]);
+  });
+});

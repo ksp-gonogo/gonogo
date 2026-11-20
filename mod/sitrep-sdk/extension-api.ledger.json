@@ -41005,108 +41005,15 @@
     }
   ],
   "pending": {
-    "breaks": [
-      {
-        "key": "sitrep-sdk . BodyDefinition#texture?",
-        "note": "Removed: a body's surface map comes from the mod on bodies.texture.<body>, for every body alike"
-      },
-      {
-        "key": "sitrep-sdk . COMMAND_IDS",
-        "note": "Adds the command id vessel.setPartField, which sets one part-window field on a part in flight"
-      },
-      {
-        "key": "sitrep-sdk . ComponentDefinition#requires?",
-        "note": "Removed: the gate follows the Topics a widget reads, so a widget declares no game state"
-      },
-      {
-        "key": "sitrep-sdk . ComponentRequirement",
-        "note": "Removed: a widget is gated by the Topics it reads, with nothing declared"
-      },
-      {
-        "key": "sitrep-sdk . ContributionRegistry#\"flight-plan.steps\"",
-        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"mode-sections.default\"",
-        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"mode-sections.design\"",
-        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"mode-sections.replay\"",
-        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
-      },
-      {
-        "key": "sitrep-sdk . registerStockBodies",
-        "note": "Takes no texture base URL: the stock table carries no surface maps"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ComponentDefinition#requires?",
-        "note": "Removed: the gate follows the Topics a widget reads, so a widget declares no game state"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ComponentRequirement",
-        "note": "Removed: a widget is gated by the Topics it reads, with nothing declared"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"flight-plan.steps\"",
-        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.default\"",
-        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.design\"",
-        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.replay\"",
-        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"flight-plan.steps\"",
-        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"flight-plan.steps\"",
-        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.default\"",
-        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.design\"",
-        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.replay\"",
-        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
-      },
-      {
-        "key": "ui-kit . ContributionRegistry#\"flight-plan.steps\"",
-        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"mode-sections.default\"",
-        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"mode-sections.design\"",
-        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"mode-sections.replay\"",
-        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
-      }
-    ],
+    "breaks": [],
     "additions": [
       {
         "key": "sitrep-sdk . ComponentDefinition#expandable?",
         "note": "New: a widget opts in to an Expand button that shows it, as the same instance, in a near-fullscreen dialog"
+      },
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"flight-plan.steps\"",
+        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
       },
       {
         "key": "sitrep-sdk . MissionMeta#flightId?",
@@ -41293,6 +41200,18 @@
         "note": "A mode section's state, shown beside its heading"
       },
       {
+        "key": "sitrep-sdk . SlotRegistry#\"mode-sections.default\"",
+        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"mode-sections.design\"",
+        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"mode-sections.replay\"",
+        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
         "key": "sitrep-sdk . getModes",
         "note": "Every registered mode, for a test"
       },
@@ -41311,6 +41230,10 @@
       {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#expandable?",
         "note": "New: the registry copy of the same opt-in"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"flight-plan.steps\"",
+        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
       },
       {
         "key": "sitrep-sdk ./registry ~ModeSectionProps",
@@ -41381,6 +41304,18 @@
         "note": "A mode section's state, shown beside its heading"
       },
       {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.default\"",
+        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.design\"",
+        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.replay\"",
+        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
         "key": "sitrep-sdk ./spine ClaimObserverContext",
         "note": "New: the widget guard hears the commands a widget claims, to gate it when one is aimed at the craft"
       },
@@ -41431,6 +41366,10 @@
       {
         "key": "sitrep-sdk ./spine useTelemetrySourceFor",
         "note": "The client and store a read of a Topic goes to, the overlay's or the live stream's"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"flight-plan.steps\"",
+        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
       },
       {
         "key": "sitrep-sdk ./spine ~MissionMeta#flightId?",
@@ -41501,6 +41440,10 @@
         "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
       },
       {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"flight-plan.steps\"",
+        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
+      },
+      {
         "key": "sitrep-sdk ./testing ~ModeSectionProps",
         "note": "The props a mode's section is given, to report its state"
       },
@@ -41569,6 +41512,18 @@
         "note": "A mode section's state, shown beside its heading"
       },
       {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.default\"",
+        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.design\"",
+        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.replay\"",
+        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
         "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#widgets?",
         "note": "New: the ids of the widgets the client registers, readable before its bundle is fetched"
       },
@@ -41579,6 +41534,10 @@
       {
         "key": "sitrep-sdk ./uplink-manifest UplinkManifest#widgets?",
         "note": "New: gonogo-uplink.json lists the ids of the widgets the client registers"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"flight-plan.steps\"",
+        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
       },
       {
         "key": "ui-kit . DeleteIcon",
@@ -41595,6 +41554,24 @@
       {
         "key": "ui-kit . SaveIcon",
         "note": "New: a floppy disk icon, for a control that saves what the operator wrote"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"mode-sections.default\"",
+        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"mode-sections.design\"",
+        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"mode-sections.replay\"",
+        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      }
+    ],
+    "recorded": [
+      {
+        "key": "sitrep-sdk . COMMAND_IDS",
+        "note": "Adds the command id vessel.setPartField, which sets one part-window field on a part in flight; the list keeps every earlier id"
       }
     ]
   }

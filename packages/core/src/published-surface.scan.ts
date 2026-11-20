@@ -46,23 +46,103 @@ function isRequiredMember(key: string): boolean {
   return key.includes("#") && !key.endsWith("?");
 }
 
+/**
+ * The interfaces an Uplink only reads from or extends with `declare module`,
+ * each key naming a slot, mode, scope, topic or command the host looks up. A
+ * new key on one of them changes nothing for a reader of the old keys, so it is
+ * an addition rather than a break. A removed or retyped key still is a break.
+ *
+ * `RailRegistry` and `LockScopeRegistry` are not here: a panel implements them,
+ * so a new required member breaks the implementer.
+ */
+export const REGISTRY_INTERFACES: ReadonlySet<string> = new Set([
+  "SlotRegistry",
+  "ContributionRegistry",
+  "ModeRegistry",
+  "WidgetScopeRegistry",
+  "PlotSubjectRegistry",
+  "ModSettingsRegistry",
+  "ComponentSlotRegistry",
+  "AugmentSegmentRegistry",
+  "TopicPayloadMap",
+  "CommandArgsMap",
+  "CommandReplyMap",
+  "UnitDeclarations",
+]);
+
+/**
+ * The entry points that are first-party wiring, not an author surface. A change
+ * on one is recorded in the ledger and never counted as a break.
+ */
+const RECORDED_ONLY_PREFIXES: readonly string[] = [
+  "sitrep-sdk ./spine ",
+  "sitrep-sdk ./registry ",
+];
+
+/** The bare interface name a key's owner declares, without package, subpath, `~` or a same-name disambiguator. */
+function ownerName(key: string): string {
+  return ownerOf(key)
+    .replace(/^\S+ \S+ /, "")
+    .replace(/^~/, "")
+    .replace(/@.*$/, "");
+}
+
+function isRecordedOnly(key: string): boolean {
+  return RECORDED_ONLY_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+
+/** The string literals of a `readonly [...]` tuple type of nothing but string literals, or null for any other text. */
+function literalTuple(line: string): string[] | null {
+  const text = line.slice(line.indexOf(SEPARATOR) + SEPARATOR.length);
+  const match = /^readonly \[((?:"[^"]*"(?:, )?)*)\]$/.exec(text);
+  if (!match) return null;
+  return [...match[1].matchAll(/"([^"]*)"/g)].map((m) => m[1]);
+}
+
+/**
+ * Whether a declaration went from one tuple of string literals to another that
+ * keeps every literal, as a list of ids does when one is appended. A reader of
+ * the list sees the same ids plus more.
+ */
+function isWidenedLiteralTuple(
+  before: readonly string[],
+  after: readonly string[],
+): boolean {
+  if (before.length !== 1 || after.length !== 1) return false;
+  const [was, now] = [literalTuple(before[0]), literalTuple(after[0])];
+  return was !== null && now !== null && was.every((id) => now.includes(id));
+}
+
 export interface ShapeDiff {
   /** Keys the current shape removed or retyped, or added as a required member of an existing owner. */
   breaks: string[];
   /** Keys the current shape added that no frozen line carries. */
   additions: string[];
+  /** Keys that would be breaks on an entry point that is first-party wiring, which the ledger records without counting. */
+  recorded: string[];
+}
+
+export interface DiffOptions {
+  /** Counts every change as the old rule did: no registry keys as additions, no recorded-only entry points. */
+  strict?: boolean;
 }
 
 /**
  * What changed between a frozen shape and the current one, by key. A key
  * whose text changed, or that gained a second line (an overload), is a break;
  * so is a new required member on an owner the frozen shape already had, since
- * it breaks everyone who builds that type.
+ * it breaks everyone who builds that type, except on a registry interface
+ * ({@link REGISTRY_INTERFACES}), where it is an addition. A change that would
+ * be a break on a recorded-only entry point (`/spine`, `/registry`), and a list
+ * of string-literal ids that gained ids and lost none, are reported as
+ * `recorded` instead.
  */
 export function diffShape(
   frozen: readonly string[],
   current: readonly string[],
+  options: DiffOptions = {},
 ): ShapeDiff {
+  const strict = options.strict === true;
   const frozenLines = new Set(frozen);
   const currentLines = new Set(current);
   const frozenKeys = new Set(frozen.map(keyOf));
@@ -76,11 +156,32 @@ export function diffShape(
     if (frozenLines.has(line)) continue;
     const key = keyOf(line);
     const retyped = frozenKeys.has(key);
-    const newRequired = isRequiredMember(key) && frozenOwners.has(ownerOf(key));
+    const newRequired =
+      isRequiredMember(key) &&
+      frozenOwners.has(ownerOf(key)) &&
+      (strict || !REGISTRY_INTERFACES.has(ownerName(key)));
     (retyped || newRequired ? breaks : additions).add(key);
   }
   for (const key of breaks) additions.delete(key);
-  return { breaks: [...breaks].sort(), additions: [...additions].sort() };
+  const recorded = new Set<string>();
+  if (!strict) {
+    const linesOf = (lines: readonly string[], key: string) =>
+      lines.filter((line) => keyOf(line) === key);
+    for (const key of breaks) {
+      const widened =
+        !key.includes("#") &&
+        isWidenedLiteralTuple(linesOf(frozen, key), linesOf(current, key));
+      if (isRecordedOnly(key) || widened) {
+        breaks.delete(key);
+        recorded.add(key);
+      }
+    }
+  }
+  return {
+    breaks: [...breaks].sort(),
+    additions: [...additions].sort(),
+    recorded: [...recorded].sort(),
+  };
 }
 
 const printer = ts.createPrinter({ removeComments: true });

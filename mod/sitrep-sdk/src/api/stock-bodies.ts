@@ -16,11 +16,14 @@ import { registerBody } from "./bodies";
  * Registers every stock KSP body with {@link registerBody}, keyed by the name
  * the telemetry stream uses, so {@link getBody} finds a body by name.
  * Useful for giving every map and diagram the stock planets and moons to
- * draw. Used by the app at startup.
+ * draw. Used by the app at startup. `baseUrl` is ignored: the mod supplies each
+ * body's surface map. It is accepted so that an Uplink built for 1.0 still
+ * compiles.
  *
  * @category Solar system and fleet
  */
-export function registerStockBodies(): void {
+export function registerStockBodies(baseUrl?: string): void {
+  void baseUrl;
   // ── Star ─────────────────────────────────────────────────────────────────
   registerBody({
     id: "Sun",
