@@ -485,6 +485,10 @@ export interface MissionMeta {
   id: string;
   /** The vessel's name now, or when the flight ended. */
   vesselName: string;
+  /**
+   * The id the mod gave the flight this mission records. A page opened mid-flight carries its recording on in the same mission, so a flight is one mission across reloads. Absent on a mission recorded before it was kept.
+   */
+  flightId?: string;
   /** The name the vessel launched with. Absent while it is the same as `vesselName`. */
   launchName?: string;
   /** Wall-clock ms when recording started. */

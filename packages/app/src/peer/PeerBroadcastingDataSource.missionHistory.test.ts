@@ -30,6 +30,8 @@ describe("PeerBroadcastingDataSource around the mission history source", () => {
       "pruneToKeepCount",
       "inOrder",
       "getFullHistoryStore",
+      "settled",
+      "continuationOf",
     ]);
     const wrapped = own(PeerBroadcastingDataSource.prototype);
     const inherited = own(

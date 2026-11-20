@@ -173,6 +173,13 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     return real.listFlights?.() ?? Promise.resolve([]);
   }
 
+  findMissionForFlight(flightId: string): Promise<unknown> {
+    const real = this.real as {
+      findMissionForFlight?: (flightId: string) => Promise<unknown>;
+    };
+    return real.findMissionForFlight?.(flightId) ?? Promise.resolve(null);
+  }
+
   getFlight(id: string): Promise<unknown> {
     const real = this.real as {
       getFlight?: (id: string) => Promise<unknown>;

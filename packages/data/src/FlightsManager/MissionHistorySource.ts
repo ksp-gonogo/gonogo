@@ -29,6 +29,7 @@ import type {
   FlightRecord,
   SeriesRange,
 } from "../types";
+import { withMissionPart } from "./buildMissionRecord";
 
 /**
  * Full-history-store rebuilds are one-shot/user-triggered (panel expand),
@@ -81,7 +82,24 @@ export class MissionHistorySource implements DataSource {
    */
   private readonly changesInOrder = new Map<string, Promise<unknown>>();
 
+  /**
+   * Where the parts a recording hands in under its own mission id are stored,
+   * once that is known: in the mission an earlier page stored for the same
+   * flight, from that mission's next part on. A recording with no such mission
+   * is stored under its own id, which is the `null` kept here.
+   */
+  private readonly continuations = new Map<
+    string,
+    { into: MissionMeta; firstPart: number } | null
+  >();
+
   constructor(private readonly missionStore: MissionStore) {}
+
+  /** Waits for the changes still being written, so a read sees every part handed in before it. */
+  private async settled(): Promise<void> {
+    if (this.changesInOrder.size === 0) return;
+    await Promise.all([...this.changesInOrder.values()]);
+  }
 
   /**
    * There is no live connection to open: this source only reads IndexedDB, so
@@ -154,8 +172,16 @@ export class MissionHistorySource implements DataSource {
   }
 
   async listFlights(): Promise<FlightRecord[]> {
+    if (this.changesInOrder.size > 0) await this.settled();
     const missions = await this.missionStore.listMissions();
     return missions.map(missionMetaToFlightRecord);
+  }
+
+  /** The stored mission recording `flightId`, or null when none does, as for a flight recorded before missions kept the id. */
+  async findMissionForFlight(flightId: string): Promise<MissionMeta | null> {
+    await this.settled();
+    const missions = await this.missionStore.listMissions();
+    return missions.find((m) => m.flightId === flightId) ?? null;
   }
 
   async getFlight(id: string): Promise<FlightRecord | null> {
@@ -198,13 +224,48 @@ export class MissionHistorySource implements DataSource {
     part: number,
     fixture: ReplayFixture,
   ): Promise<void> {
-    await this.inOrder(meta.id, () =>
-      this.missionStore.saveMissionPart(meta, part, fixture),
-    );
+    let storedId = meta.id;
+    await this.inOrder(meta.id, async () => {
+      const continued = await this.continuationOf(meta);
+      if (continued) {
+        storedId = continued.into.id;
+        await this.missionStore.saveMissionPart(
+          withMissionPart(continued.into, meta),
+          continued.firstPart + part,
+          fixture,
+        );
+        return;
+      }
+      await this.missionStore.saveMissionPart(meta, part, fixture);
+    });
     // A graph open on this mission holds a store built from fewer parts.
-    this.historyCache.delete(meta.id);
+    this.historyCache.delete(storedId);
     this.flightListSubscribers.fire();
-    await this.pruneToKeepCount(meta.id);
+    await this.pruneToKeepCount(storedId);
+  }
+
+  /**
+   * The stored mission a recording's parts carry on, decided when its first part
+   * arrives: a page opened mid-flight records the flight again under an id of
+   * its own, and the history lists a flight once.
+   */
+  private async continuationOf(
+    meta: MissionMeta,
+  ): Promise<{ into: MissionMeta; firstPart: number } | null> {
+    if (this.continuations.has(meta.id)) {
+      return this.continuations.get(meta.id) ?? null;
+    }
+    const earlier =
+      meta.flightId === undefined
+        ? undefined
+        : (await this.missionStore.listMissions()).find(
+            (m) => m.flightId === meta.flightId && m.id !== meta.id,
+          );
+    const continued = earlier
+      ? { into: earlier, firstPart: earlier.partCount ?? 1 }
+      : null;
+    this.continuations.set(meta.id, continued);
+    return continued;
   }
 
   /**
@@ -261,7 +322,8 @@ export class MissionHistorySource implements DataSource {
     joinedVesselId?: string,
   ): Promise<void> {
     await this.inOrder(id, async () => {
-      const meta = await this.missionStore.getMissionMeta(id);
+      const stored = this.continuations.get(id)?.into.id ?? id;
+      const meta = await this.missionStore.getMissionMeta(stored);
       if (!meta) {
         logger.warn(
           "[MissionHistorySource] end reason for a mission not stored",
@@ -270,7 +332,7 @@ export class MissionHistorySource implements DataSource {
         return;
       }
       if (meta.endReason !== undefined) return;
-      await this.missionStore.updateMissionMeta(id, {
+      await this.missionStore.updateMissionMeta(stored, {
         endReason,
         ...(joinedVesselId === undefined ? {} : { joinedVesselId }),
         ...(joinedVesselName === undefined ? {} : { joinedVesselName }),
@@ -296,11 +358,14 @@ export class MissionHistorySource implements DataSource {
    * docked.
    */
   async reopenFlight(id: string): Promise<void> {
-    await this.missionStore.updateMissionMeta(id, {
-      endReason: undefined,
-      joinedVesselId: undefined,
-      joinedVesselName: undefined,
-    });
+    await this.missionStore.updateMissionMeta(
+      this.continuations.get(id)?.into.id ?? id,
+      {
+        endReason: undefined,
+        joinedVesselId: undefined,
+        joinedVesselName: undefined,
+      },
+    );
     this.flightListSubscribers.fire();
   }
 

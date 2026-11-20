@@ -57,7 +57,8 @@ interface Rig {
 
 let dbCounter = 0;
 
-function buildRig(): Rig {
+/** `sharedDb` opens a store a page before it already used, as a reload does. */
+function buildRig(sharedDb?: string): Rig {
   const raf = installFakeRaf();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
@@ -66,7 +67,7 @@ function buildRig(): Rig {
 
   dbCounter += 1;
   const missionStore = new MissionStore({
-    dbName: `auto-record-test-${dbCounter}`,
+    dbName: sharedDb ?? `auto-record-test-${dbCounter}`,
   });
   const source = new MissionHistorySource(missionStore);
   registerDataSource(source);
@@ -143,8 +144,10 @@ function tickFrame(
   });
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   clearRegistry();
+  // The recording a test unmounted is still being stored, and its outcome would land in the next test's status.
+  await new Promise((resolve) => setTimeout(resolve, 50));
   resetAutoRecordStatusForTests();
 });
 
@@ -612,6 +615,93 @@ describe("AutoRecordController", () => {
     expect(flights).toHaveLength(1);
   });
 
+  describe("a page reloaded during a flight", () => {
+    const flight = { flightId: "vA", vesselId: "vA", vesselName: "Alpha" };
+    const page = (rig: Rig) => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene="Flight" />
+      </TelemetryProvider>
+    );
+    const settle = () =>
+      act(async () => await new Promise((r) => setTimeout(r, 50)));
+
+    it("carries on the mission the page before it stored, so the crash lands on the same row", async () => {
+      const db = "reload-same-flight";
+      const first = buildRig(db);
+      const firstPage = render(page(first));
+      start(first, 0, flight);
+      tickFrame(first, 10, "vA", "Alpha");
+      firstPage.unmount();
+      await settle();
+      expect(await first.source.listFlights()).toHaveLength(1);
+
+      const second = buildRig(db);
+      render(page(second));
+      start(second, 0, flight);
+      tickFrame(second, 20, "vA", "Alpha");
+      end(second, 30, "vA", 1 /* Crashed */);
+      await settle();
+
+      const flights = await second.source.listFlights();
+      expect(flights).toHaveLength(1);
+      expect(flights[0]?.endReason).toBe(1);
+      const { frames } = await second.source.exportFlight(flights[0]?.id ?? "");
+      expect(frames.length).toBeGreaterThanOrEqual(3);
+      expect((await second.missionStore.listMissions())[0]?.flightId).toBe(
+        "vA",
+      );
+    });
+
+    it("makes one row for a flight whose first page stored no part", async () => {
+      const db = "reload-nothing-stored";
+      const first = buildRig(db);
+      render(page(first));
+      start(first, 0, flight);
+      tickFrame(first, 10, "vA", "Alpha");
+      // A reload runs no cleanup, so the page's recording in hand is never stored.
+      expect(await first.source.listFlights()).toEqual([]);
+
+      const second = buildRig(db);
+      render(page(second));
+      start(second, 0, flight);
+      tickFrame(second, 20, "vA", "Alpha");
+      end(second, 30, "vA", 1);
+      await settle();
+
+      const flights = await second.source.listFlights();
+      expect(flights).toHaveLength(1);
+      expect(flights[0]?.endReason).toBe(1);
+    });
+
+    it("lists a mission stored without a flight id and keeps the flight's recording a row of its own", async () => {
+      const db = "reload-legacy-mission";
+      const first = buildRig(db);
+      await first.source.saveMissionPart(
+        {
+          id: "legacy",
+          vesselName: "Alpha",
+          launchedAt: 1,
+          firstFrameUt: 0,
+          lastFrameUt: 5,
+          frameCount: 1,
+        },
+        0,
+        { frames: [] },
+      );
+
+      const second = buildRig(db);
+      render(page(second));
+      start(second, 0, flight);
+      tickFrame(second, 20, "vA", "Alpha");
+      end(second, 30, "vA", 1);
+      await settle();
+
+      const flights = await second.source.listFlights();
+      expect(flights.map((f) => f.id).sort()).toHaveLength(2);
+      expect(flights.find((f) => f.id === "legacy")?.endReason).toBeUndefined();
+    });
+  });
+
   it("records nothing while the master switch is off", async () => {
     const rig = buildRig();
     render(
@@ -782,6 +872,7 @@ describe("AutoRecordController", () => {
       start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
       for (let ut = 1; ut <= 12; ut += 1) tickFrame(rig, ut, "vA", "Alpha");
       end(rig, 12, "vA");
+      await vi.waitFor(() => expect(save).toHaveBeenCalled());
       await settled(save);
 
       expect(save.mock.calls.length).toBeGreaterThanOrEqual(2);
@@ -792,10 +883,12 @@ describe("AutoRecordController", () => {
       expect(utOf(frames[0] ?? "")).toBeGreaterThan(1);
       expect(utOf(frames[frames.length - 1] ?? "")).toBe(12);
       // The loss is still on show: storing the later parts of the same flight does not clear it.
-      expect(getAutoRecordStatus().saveFailure).toEqual({
-        vesselName: "Alpha",
-        cause: "QuotaExceededError",
-      });
+      await vi.waitFor(() =>
+        expect(getAutoRecordStatus().saveFailure).toEqual({
+          vesselName: "Alpha",
+          cause: "QuotaExceededError",
+        }),
+      );
     });
   });
 
@@ -819,7 +912,8 @@ describe("AutoRecordController", () => {
 
       pageMs = 60_000;
       tickFrame(rig, 6, "vA", "Alpha");
-      expect(save).toHaveBeenCalledTimes(1);
+      // The first part is stored once the history has looked for an earlier page's mission of the flight.
+      await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1));
       expect(getAutoRecordStatus().recording).toBe(true);
 
       // The next part is timed from the one just stored.

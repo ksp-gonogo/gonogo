@@ -41109,6 +41109,10 @@
         "note": "New: a widget opts in to an Expand button that shows it, as the same instance, in a near-fullscreen dialog"
       },
       {
+        "key": "sitrep-sdk . MissionMeta#flightId?",
+        "note": "New: the flight a stored mission records, so a flight stays one mission across page reloads"
+      },
+      {
         "key": "sitrep-sdk . ModeDefinition",
         "note": "A mode's name, when it is on and its timeline, passed to registerMode"
       },
@@ -41427,6 +41431,10 @@
       {
         "key": "sitrep-sdk ./spine useTelemetrySourceFor",
         "note": "The client and store a read of a Topic goes to, the overlay's or the live stream's"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#flightId?",
+        "note": "New: the spine copy of the same field"
       },
       {
         "key": "sitrep-sdk ./spine ~ModeId",

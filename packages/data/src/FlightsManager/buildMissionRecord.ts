@@ -25,6 +25,8 @@ export function buildMissionRecord(params: {
   fixture: ReplayFixture;
   /** The mission this fixture is a later part of. Omitted, a new id is made. */
   id?: string;
+  /** The flight the fixture records. */
+  flightId?: string;
   /** Why the flight ended, when the end is known. */
   endReason?: FlightEndReason;
   /** The kerbals who went on EVA from the vessel so far, in the order they went. */
@@ -60,6 +62,7 @@ export function buildMissionRecord(params: {
 
   const meta: MissionMeta = {
     id: params.id ?? makeMissionId(),
+    ...(params.flightId === undefined ? {} : { flightId: params.flightId }),
     vesselName: params.vesselName || "Unnamed vessel",
     ...(params.launchName && params.launchName !== params.vesselName
       ? { launchName: params.launchName }

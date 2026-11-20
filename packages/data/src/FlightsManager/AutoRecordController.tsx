@@ -222,6 +222,7 @@ export function AutoRecordController({
         evaKerbals: evaKerbalsRef.current,
         fixture,
         id: recorded?.meta.id,
+        flightId: activeFlightIdRef.current ?? undefined,
         endReason,
         joinedVesselId,
         joinedVesselName,
@@ -518,14 +519,33 @@ export function AutoRecordController({
         savedMissionIdsRef.current.delete(flightId);
       }
       const src = getSource();
-      if (!id || typeof src?.setFlightEndReason !== "function") return;
-      src
-        .setFlightEndReason(id, endReason, joinedVesselName, joinedVesselId)
-        .catch((error: unknown) => {
-          logger.warn("[AutoRecordController] end reason not stored", {
-            err: String(error),
-          });
+      if (typeof src?.setFlightEndReason !== "function") return;
+      const warn = (error: unknown) => {
+        logger.warn("[AutoRecordController] end reason not stored", {
+          err: String(error),
         });
+      };
+      if (id) {
+        src
+          .setFlightEndReason(id, endReason, joinedVesselName, joinedVesselId)
+          .catch(warn);
+        return;
+      }
+      /* This page stored nothing for the flight, which an earlier page may have recorded. */
+      if (typeof src.findMissionForFlight !== "function") return;
+      void src
+        .findMissionForFlight(flightId)
+        .then((mission) =>
+          mission
+            ? src.setFlightEndReason(
+                mission.id,
+                endReason,
+                joinedVesselName,
+                joinedVesselId,
+              )
+            : undefined,
+        )
+        .catch(warn);
     },
     [],
   );
