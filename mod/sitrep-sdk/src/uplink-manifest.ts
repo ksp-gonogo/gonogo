@@ -88,6 +88,14 @@ export interface UplinkDeclaration {
    */
   name?: string;
   /**
+   * One or two sentences saying what the Uplink does. An Uplink with a client
+   * gives this through `defineUplinkClient`; an Uplink with no client package
+   * gives it here, and `uplink-tools page` opens its README with it.
+   *
+   * @readBy page
+   */
+  description?: string;
+  /**
    * Who wrote it, shown when the app asks the operator whether to load the client.
    *
    * @readBy bake, bundle, check, docs, page

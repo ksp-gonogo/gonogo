@@ -42916,6 +42916,10 @@
         "note": "New: the ids of the widgets the client registered, written into the manifest"
       },
       {
+        "key": "sitrep-sdk ./uplink-manifest UplinkDeclaration#description?",
+        "note": "Optional one-sentence description an Uplink with no client package gives in uplink.json, which opens its generated README"
+      },
+      {
         "key": "sitrep-sdk ./uplink-manifest UplinkManifest#widgets?",
         "note": "New: gonogo-uplink.json lists the ids of the widgets the client registers"
       },

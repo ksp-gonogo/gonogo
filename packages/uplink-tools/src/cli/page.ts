@@ -19,10 +19,15 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { readUplinkDeclaration } from "@ksp-gonogo/sitrep-sdk/uplink-manifest";
 import { PAGE_WRITE_ENV } from "../page-write-env";
-import { pageRoot } from "../render/docs";
+import {
+  buildClientlessReadme,
+  pageRoot,
+  README_GENERATED_MARKER,
+} from "../render/docs";
 import { findUplinkDir } from "./bake";
 import { parseFlags } from "./flags";
 
@@ -36,20 +41,39 @@ export const PAGE_USAGE = `uplink-tools page [options]
   files it wrote. The pictures under docs/assets are left alone: docs renders
   those.
 
+  An Uplink with no client package gets its README alone, written from
+  uplink.json (name, description, mod and install), with no gonogo-uplink.json
+  and no docs.
+
   --client <dir>   the Uplink's client package (default: client/ in the Uplink
-                   the current directory is inside)`;
+                   the current directory is inside)
+  --check          for an Uplink with no client: write nothing and exit 1 when
+                   its README differs from what uplink.json gives`;
 
 export function page(
   argv: readonly string[],
   cwd: string = process.cwd(),
 ): number {
-  const { values } = parseFlags(argv, {
+  const { values, switches: flags } = parseFlags(argv, {
     verb: "page",
     usage: PAGE_USAGE,
     values: ["--client"],
+    switches: ["--check"],
   });
   const named = values.get("--client");
   const uplinkDir = findUplinkDir(cwd);
+  if (
+    named === undefined &&
+    uplinkDir &&
+    !existsSync(join(uplinkDir, "client", "package.json"))
+  ) {
+    return clientlessPage(uplinkDir, flags.has("--check"));
+  }
+  if (flags.has("--check")) {
+    throw new Error(
+      "page --check is for an Uplink with no client. A client's page is compared by its own test, which calls expectUplinkPageCurrent().",
+    );
+  }
   const clientDir =
     named !== undefined
       ? resolve(cwd, named)
@@ -158,4 +182,51 @@ export function pageCheckFiles(dir: string): string[] {
     }
   }
   return found.sort();
+}
+
+/** What `page --check` says when an Uplink with no client has no README. */
+export const CLIENTLESS_README_MISSING =
+  "page: README.md is missing. Run `uplink-tools page` to write it.";
+
+/** What `page --check` says when the README differs from what uplink.json gives. */
+export const CLIENTLESS_README_DIFFERS =
+  "page: README.md is out of date. Run `uplink-tools page` to rewrite it.";
+
+/**
+ * The README of an Uplink with no client package, written from its `uplink.json`
+ * alone, or compared with the committed one when `check` is set. A README that
+ * lacks the generated marker was written by a person and is never overwritten.
+ */
+function clientlessPage(uplinkDir: string, check: boolean): number {
+  const found = readUplinkDeclaration(uplinkDir);
+  if (!found) throw new Error(`no uplink.json in ${uplinkDir}.`);
+  const readme = buildClientlessReadme(found.declared);
+  const path = join(uplinkDir, "README.md");
+  const committed = existsSync(path) ? readFileSync(path, "utf8") : undefined;
+  if (committed === readme) {
+    console.log(
+      "page: README.md already matches uplink.json. Nothing written.",
+    );
+    return 0;
+  }
+  if (check) {
+    console.log(
+      committed === undefined
+        ? CLIENTLESS_README_MISSING
+        : CLIENTLESS_README_DIFFERS,
+    );
+    return 1;
+  }
+  if (
+    committed !== undefined &&
+    !committed.startsWith(README_GENERATED_MARKER)
+  ) {
+    throw new Error(
+      `${path} was not written by \`uplink-tools docs\` or \`uplink-tools page\`, so it was left alone. ` +
+        "Move it aside (git mv README.md NOTES.md) and run page again.",
+    );
+  }
+  writeFileSync(path, readme, "utf8");
+  console.log("page: wrote README.md");
+  return 0;
 }
