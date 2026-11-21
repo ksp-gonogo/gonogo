@@ -821,6 +821,34 @@ jobs:
       label: ${{ fromJSON(needs.rc-plan.outputs.plan).version }}
     secrets: inherit
 
+  # Asks the Uplink docs to rebuild, so the site's root follows `latest` and
+  # its /rc/ follows `rc`. After move-tags, so the docs only ever see a complete
+  # set. The docs workflow resolves both dist-tags itself and its own nightly run
+  # is the safety net, so a refused dispatch warns and leaves the release green.
+  # A dry run moved no tag, so it dispatches nothing.
+  docs-follow:
+    needs: [move-tags]
+    if: ${{ !cancelled() && !inputs.dry_run && needs.move-tags.result == 'success' }}
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      - name: Dispatch the Uplink docs build
+        env:
+          GH_TOKEN: ${{ secrets.KSP_MANAGED_TOKEN }}
+        run: |
+          if error=$(gh workflow run pages.yml --repo ksp-gonogo/uplink-dev-docs --ref main 2>&1); then
+            echo "📚 Asked ksp-gonogo/uplink-dev-docs to rebuild." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::the Uplink docs dispatch was refused: $error"
+            {
+              echo "⚠️ The Uplink docs dispatch was refused:"
+              echo
+              echo '~~~'
+              echo "$error"
+              echo '~~~'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   # The C# half of the Uplink surface, packed once and gated before anything
   # ships: the package gate, then the extraction probe building a real Uplink
   # against it outside the repo, then the plant proving the probe could have

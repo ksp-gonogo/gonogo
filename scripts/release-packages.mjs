@@ -251,8 +251,10 @@ export function importedScopePackages(source) {
 
 /**
  * The published manifest: the release version, every sibling it resolves pinned
- * to that version, and every published sibling its workspace manifest names and
- * its dist imports added as an exact peer.
+ * to that version, every published sibling its workspace manifest names and
+ * its dist imports added as an exact peer, and `gitHead`, the commit the
+ * package was packed from, which `npm view <name>@<version> gitHead` reads back.
+ * A missing or malformed commit leaves the field out.
  */
 export function stampManifest(
   manifest,
@@ -260,9 +262,13 @@ export function stampManifest(
   siblings,
   workspaceManifest,
   imported,
+  gitHead,
 ) {
   const out = structuredClone(manifest);
   out.version = version;
+  if (typeof gitHead === "string" && /^[0-9a-f]{40}$/.test(gitHead)) {
+    out.gitHead = gitHead;
+  }
   const pinned = [];
   for (const field of RESOLVED_DEP_FIELDS) {
     for (const name of Object.keys(out[field] ?? {})) {
@@ -338,6 +344,18 @@ function emittedSources(packageDir) {
 const siblingNames = (root) =>
   new Set(publishedPackages(root).map((pkg) => pkg.name));
 
+/** The commit the tree under `root` is at, or undefined outside a git checkout. */
+function headCommit(root) {
+  try {
+    return execFileSync("git", ["-C", root, "rev-parse", "HEAD"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return undefined;
+  }
+}
+
 /** Re-tars a packed tarball with its published manifest; returns the new tarball's path. */
 export function stampTarball(tarball, version, outDir, root = REPO_ROOT) {
   const work = makeTempDir("gonogo-release-stamp-");
@@ -360,6 +378,7 @@ export function stampTarball(tarball, version, outDir, root = REPO_ROOT) {
       siblingNames(root),
       workspaceManifest,
       imported,
+      headCommit(root),
     );
     writeFileSync(
       manifestPath,

@@ -56,6 +56,7 @@ export function stampManifest(
   siblings: Set<string>,
   workspaceManifest: { devDependencies?: Record<string, string> },
   imported: Set<string>,
+  gitHead?: string,
 ): {
   manifest: Manifest & {
     peerDependencies?: Record<string, string>;

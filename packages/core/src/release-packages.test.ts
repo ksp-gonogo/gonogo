@@ -121,6 +121,22 @@ describe("stampManifest", () => {
     );
     expect(manifest.peerDependencies).toBeUndefined();
   });
+
+  it("records the commit the package was packed from as gitHead", () => {
+    const sha = "a0f8d780caeaec4a8105290708dc0b4a67ef8b73";
+    const stamp = (gitHead?: string) =>
+      stampManifest(
+        { name: KIT, version: "0.1.0" },
+        "0.2.0",
+        siblings,
+        {},
+        new Set(),
+        gitHead,
+      ).manifest;
+    expect(stamp(sha).gitHead).toBe(sha);
+    expect(stamp().gitHead).toBeUndefined();
+    expect(stamp("not-a-commit").gitHead).toBeUndefined();
+  });
 });
 
 describe("auditManifest", () => {
