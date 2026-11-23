@@ -19,7 +19,7 @@ namespace Gonogo.KSP
     /// <para>Registered for the same three scenes as the other Gonogo scenarios so
     /// the node survives a save taken from any of them, not only from flight.</para>
     /// </summary>
-    [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION)]
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames | ScenarioCreationOptions.AddToAllMissionGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION)]
     public sealed class EvaParentageScenario : ScenarioModule
     {
         public override void OnAwake()

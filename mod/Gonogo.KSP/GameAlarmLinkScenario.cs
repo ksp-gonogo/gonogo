@@ -14,7 +14,7 @@ namespace Gonogo.KSP
     /// them outlives every scene. OnAwake empties it and OnLoad refills it from
     /// the incoming save, the same as <see cref="EvaParentageScenario"/>.</para>
     /// </summary>
-    [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION)]
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames | ScenarioCreationOptions.AddToAllMissionGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION)]
     public sealed class GameAlarmLinkScenario : ScenarioModule
     {
         private const string LinkNode = "LINK";

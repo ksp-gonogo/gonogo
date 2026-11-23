@@ -14,7 +14,7 @@ namespace Gonogo.KSP
     /// <para>Registered for the three scenes the other Gonogo scenarios use, so a
     /// save taken from any of them keeps it.</para>
     /// </summary>
-    [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION)]
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames | ScenarioCreationOptions.AddToAllMissionGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION)]
     public sealed class CraftLaunchScenario : ScenarioModule
     {
         public override void OnLoad(ConfigNode node)

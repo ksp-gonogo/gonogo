@@ -23,7 +23,7 @@ namespace Gonogo.KSP
     /// again, so the engine restores from what it was told at the save, not
     /// from a record that has yet to arrive.</para>
     /// </summary>
-    [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION)]
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames | ScenarioCreationOptions.AddToAllMissionGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION)]
     public sealed class CommandDeliveryScenario : ScenarioModule
     {
         private const string DeliveryKey = "delivery";
