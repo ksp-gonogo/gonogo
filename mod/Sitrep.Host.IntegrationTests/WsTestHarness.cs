@@ -433,7 +433,19 @@ namespace Sitrep.Host.IntegrationTests
                 using var cts = new CancellationTokenSource(timeout);
                 try
                 {
-                    return await reader.ReadAsync(cts.Token);
+                    var item = await reader.ReadAsync(cts.Token);
+                    /*
+                     * The channel resumes a parked reader inline on the pump thread, so
+                     * without this hop the rest of the test body would run there. A test
+                     * that then ticks the engine synchronously stops the socket being
+                     * read for as long as it does, and once the loopback buffers are full
+                     * the server's write stalls until its limit drops the connection.
+                     */
+                    if (Thread.CurrentThread == _pumpThread)
+                    {
+                        await Task.Yield();
+                    }
+                    return item;
                 }
                 catch (OperationCanceledException) when (_pumpFault is { } fault)
                 {
